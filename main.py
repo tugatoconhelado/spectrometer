@@ -44,6 +44,7 @@ if __name__ == '__main__':
             ui_spectrometer.update_average_spectrum_plot
             )
     qepro.initialise_status_signal.connect(ui_spectrometer.enable_gui)
+    qepro.spectrometer_counts_signal.connect(ui_spectrometer.update_spectrometer_counts_plot)
 
 
 

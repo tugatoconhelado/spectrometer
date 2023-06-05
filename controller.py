@@ -10,6 +10,7 @@ class ControlSpectrometer(QObject):
     spectrum_signal = pyqtSignal(tuple)
     averaged_spectrum_signal = pyqtSignal(tuple)
     initialise_status_signal = pyqtSignal(bool)
+    spectrometer_counts_signal = pyqtSignal(float)
 
     def __init__(self):
 
@@ -18,12 +19,32 @@ class ControlSpectrometer(QObject):
         self.length = 1000 # Length of the arrays
         self.__current_spectrum = np.zeros(self.length)
         self.__background = np.zeros(self.length)
+        self.__spectrometer_counts = 0
 
-        self.integration_time = 100
+        self.__integration_time = 100
         self.scans_average = 1
         self.electrical_dark = False
 
         self.substract_background = False
+
+    @property
+    def spectrometer_counts(self):
+        return self.__spectrometer_counts
+
+    @spectrometer_counts.setter
+    def spectrometer_counts(self, new_counts):
+        self.__spectrometer_counts = new_counts
+        self.spectrometer_counts_signal.emit(self.spectrometer_counts)
+
+    @property
+    def integration_time(self):
+        return self.__integration_time
+
+    @integration_time.setter
+    def integration_time(self, new_time):
+
+        self.__integration_time = new_time
+        self.spectrometer.integration_time_micros(self.integration_time * 1000)# In microseconds
 
     @property
     def current_spectrum(self):
@@ -37,6 +58,7 @@ class ControlSpectrometer(QObject):
                 self.__current_spectrum = spectrum - self.background
             elif self.substract_background is False:
                 self.__current_spectrum = spectrum
+            self.spectrometer_counts = np.sum(spectrum)
             self.spectrum_signal.emit(
                     (self.wavelength, self.current_spectrum)
                     )
@@ -50,11 +72,13 @@ class ControlSpectrometer(QObject):
         if len(bg) == self.length:
             self.__background = bg
 
-
     def initialise(self):
 
         print('Loading Spectrometer')
-        self.wavelength = np.linspace(400, 1100, 1000)
+        self.spectrometer = Spectrometer.from_first_available()
+        self.wavelength = self.spectrometer.wavelengths()
+        self.length = len(self.wavelength)
+        print(self.wavelength)
         self.initialise_status_signal.emit(True)
         self.background = np.ones(self.length)
         #self.spectrometer = Spectrometer.from_first_available()
@@ -62,24 +86,23 @@ class ControlSpectrometer(QObject):
     def get_single_spectrum(self):
 
         print(f'Reading Spectrum with {self.integration_time} ms \
-              integration time')
-        QtTest.QTest.qWait(self.integration_time * self.scans_average)
+                              integration time')
         spectrum = np.zeros(self.length)
         for i in range(self.scans_average):
-            spectrum += np.random.rand(1000)
+            spectrum += self.spectrometer.intensities(self.electrical_dark)
+            QtTest.QTest.qWait(self.integration_time)
         self.current_spectrum = spectrum / self.scans_average
         return self.current_spectrum
 
     def read_continuously(self, number_average=10):
 
-        average_spectrum = np.zeros(1000)
 
-        print(f'Measuring {number_average} spectra')
+        print(f'Measuring {number_average} spectra with integration time {self.integration_time} ms')
         spectra = np.zeros((number_average, self.length)) # Stores measurements
 
         for i in range(number_average):
             print(f'Computing spectrum {i}')
-            self.current_spectrum = np.random.rand(1000)
+            self.current_spectrum = self.spectrometer.intensities(self.electrical_dark)
             spectra[i, :] = self.current_spectrum
             average_spectrum = np.sum(spectra, axis=0) / (i + 1)
             self.averaged_spectrum_signal.emit(

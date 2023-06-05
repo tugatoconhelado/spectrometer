@@ -25,6 +25,8 @@ class UiSpectrometer(QWidget, Ui_spectrometer_widget):
         super().__init__()
 
         self.current_file = None
+        self.x_counts = list()
+        self.y_counts = list()
         print(self.current_file)
 
         if options is None:
@@ -180,6 +182,12 @@ class UiSpectrometer(QWidget, Ui_spectrometer_widget):
             print('Scans average must be an integer')
             self.scans_average_edit.setText('1')
 
+    def update_spectrometer_counts_plot(self, data):
+
+        self.y_counts.append(data)
+        self.x_counts.append(self.y_counts.index(data))
+        self.spectrometer_counts_plot.clear()
+        self.spectrometer_counts_plot.plot(self.x_counts, self.y_counts, pen='b')
 
     def update_current_spectrum_plot(self, data):
 
