@@ -41,7 +41,7 @@ class SpectrumAcquiring(QObject):
 
         # Timer to perform the measurements
         self.timer = QTimer()
-        self.timer.setInterval(1000)
+        self.timer.setInterval(100)
         self.timer.timeout.connect(self.get_spectrum)
 
     def start_acquisition(self):
@@ -50,6 +50,8 @@ class SpectrumAcquiring(QObject):
         self.integration_time = self.model.integration_time
         self.scans_average = self.model.scans_average
         self.electrical_dark = self.model.electrical_dark
+
+        self.timer.setInterval(self.integration_time)
         print(f'Reading Spectrum')
         print(f'Parameters')
         print(f'----------')
