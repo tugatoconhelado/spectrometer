@@ -1,128 +1,207 @@
 import os
 import sys
 import numpy as np
+from time import sleep
 from PyQt5 import QtTest
-from PyQt5.QtCore import (QObject, pyqtSignal)
-from seabreeze.spectrometers import Spectrometer
+from PyQt5.QtCore import (QObject, pyqtSignal, QTimer)
+from seatease.spectrometers import Spectrometer
 
-class ControlSpectrometer(QObject):
 
-    spectrum_signal = pyqtSignal(tuple)
-    averaged_spectrum_signal = pyqtSignal(tuple)
+class SpectrumAcquiring(QObject):
+    """
+    Reads the spectrum from the spectrometer object
+
+    It reads continously. This means that when the signals is to be averaged,
+    it emits signals for every measurement performed in order to average
+
+    Parameters
+    ----------
+    spectrometer : Spectrometer
+        The Spectrometer object from which to read the data.
+    integration_time: int
+        Integration time of the measurement.
+    scans_average : int
+        Number of scans to be averaged.
+    """
+
     initialise_status_signal = pyqtSignal(bool)
-    spectrometer_counts_signal = pyqtSignal(float)
 
-    def __init__(self):
+    def __init__(self, model, spectrometer=None):
 
         super().__init__()
 
-        self.length = 1000 # Length of the arrays
-        self.__current_spectrum = np.zeros(self.length)
-        self.__background = np.zeros(self.length)
-        self.__spectrometer_counts = 0
-
-        self.__integration_time = 100
-        self.scans_average = 1
+        self.model = model
+        self.spectrometer = spectrometer
         self.electrical_dark = False
-
         self.substract_background = False
+        self.length = 10
+        self.current_index = 0
+        self.counts_time = np.array([])
+        self.counts = np.array([])
 
-    @property
-    def spectrometer_counts(self):
-        return self.__spectrometer_counts
+        # Timer to perform the measurements
+        self.timer = QTimer()
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.get_spectrum)
 
-    @spectrometer_counts.setter
-    def spectrometer_counts(self, new_counts):
-        self.__spectrometer_counts = new_counts
-        self.spectrometer_counts_signal.emit(self.spectrometer_counts)
+    def start_acquisition(self):
 
-    @property
-    def integration_time(self):
-        return self.__integration_time
+        # Query measurement info
+        self.integration_time = self.model.integration_time
+        self.scans_average = self.model.scans_average
+        self.electrical_dark = self.model.electrical_dark
+        print(f'Reading Spectrum')
+        print(f'Parameters')
+        print(f'----------')
+        print(f'Integration time: {self.integration_time}')
+        print(f'Scans to average: {self.scans_average}')
+        print(f'Electrical dark: {self.electrical_dark}')
+        self.timer.start()
 
-    @integration_time.setter
-    def integration_time(self, new_time):
+    def get_spectrum(self):
 
-        self.__integration_time = new_time
-        self.spectrometer.integration_time_micros(self.integration_time * 1000)# In microseconds
+        spectra = np.zeros((self.scans_average, self.length)) # Stores measurements
+        i = self.current_index
+        print(f'Computing spectrum {i}')
+        current_spectrum = self.spectrometer.intensities(
+                self.electrical_dark
+                )
+        spectra[i, :] = current_spectrum
+        self.model.spectrum = (self.wavelength, current_spectrum)
+        self.model.averaged_spectrum = (
+                self.wavelength, np.sum(spectra, axis=0) / (i + 1)
+                )
+        self.counts_time = np.append(self.counts_time, i * self.integration_time)
+        self.counts = np.append(self.counts, np.sum(current_spectrum))
+        self.model.spectrum_counts = (
+                self.counts_time / 1000,
+                self.counts
+                )
+        if self.current_index >= self.scans_average - 1:
+            # -1 because we count from 0
+            self.stop_acquisition()
+        else:
+            self.current_index += 1
 
-    @property
-    def current_spectrum(self):
-        return self.__current_spectrum
+    def stop_acquisition(self):
 
-    @current_spectrum.setter
-    def current_spectrum(self, spectrum):
-        if len(spectrum) == self.length:
-            if self.substract_background is True:
-                print('Substracting background')
-                self.__current_spectrum = spectrum - self.background
-            elif self.substract_background is False:
-                self.__current_spectrum = spectrum
-            self.spectrometer_counts = np.sum(spectrum)
-            self.spectrum_signal.emit(
-                    (self.wavelength, self.current_spectrum)
-                    )
-
-    @property
-    def background(self):
-        return self.__background
-
-    @background.setter
-    def background(self, bg):
-        if len(bg) == self.length:
-            self.__background = bg
+        if self.timer.isActive():
+            self.timer.stop()
+        self.current_index = 0
+        self.counts_time = np.array([])
+        self.counts = np.array([])
 
     def initialise(self):
 
         print('Loading Spectrometer')
-        self.spectrometer = Spectrometer.from_first_available()
-        self.wavelength = self.spectrometer.wavelengths()
-        self.length = len(self.wavelength)
-        print(self.wavelength)
-        self.initialise_status_signal.emit(True)
-        self.background = np.ones(self.length)
-        #self.spectrometer = Spectrometer.from_first_available()
+        try:
+            self.spectrometer = Spectrometer.from_first_available()
+            self.wavelength = self.spectrometer.wavelengths()
+            self.length = len(self.wavelength)
+            self.model.initialise_status_signal.emit(True)
+        except:
+            print('Loading Spectrometer failed')
+            self.model.initialise_status_signal.emit(False)
 
-    def get_single_spectrum(self):
-
-        print(f'Reading Spectrum with {self.integration_time} ms \
-                              integration time')
-        spectrum = np.zeros(self.length)
-        for i in range(self.scans_average):
-            spectrum += self.spectrometer.intensities(self.electrical_dark)
-            QtTest.QTest.qWait(self.integration_time)
-        self.current_spectrum = spectrum / self.scans_average
-        return self.current_spectrum
-
-    def read_continuously(self, number_average=10):
+class DataCheckerSpectrometer(QObject):
 
 
-        print(f'Measuring {number_average} spectra with integration time {self.integration_time} ms')
-        spectra = np.zeros((number_average, self.length)) # Stores measurements
+    def __init__(self, model):
 
-        for i in range(number_average):
-            print(f'Computing spectrum {i}')
-            self.current_spectrum = self.spectrometer.intensities(self.electrical_dark)
-            spectra[i, :] = self.current_spectrum
-            average_spectrum = np.sum(spectra, axis=0) / (i + 1)
-            self.averaged_spectrum_signal.emit(
-                    (self.wavelength, average_spectrum)
-                    )
-            QtTest.QTest.qWait(self.integration_time)
+        super().__init__()
 
-    def load_spectra(self, as_background=False):
+        self.model = model
+        self.acquirer = SpectrumAcquiring(self.model)
+        self.integration_time_limits = (10, 1000)
 
-        if as_background:
-            pass
-        pass
+    def initialise_spectrometer(self):
 
-    def previous_spectra(self):
-        pass
+        print('Loading Spectrometer')
+        try:
+            self.spectrometer = Spectrometer.from_first_available()
+            self.wavelength = self.spectrometer.wavelengths()
+            self.length = len(self.wavelength)
+            self.model.initialise_status_signal.emit(True)
+            limits = self.spectrometer.integration_time_micros_limits
+            ms_limits = (limits[0] / 1000, limits[1] / 1000) # Convert to ms
+            self.integration_time_limits = ms_limits
+            self.acquirer.spectrometer = self.spectrometer
+            self.acquirer.length = len(self.wavelength)
+            self.acquirer.wavelength = self.wavelength
+            print(self.integration_time_limits)
+        except:
+            print('Loading Spectrometer failed')
+            self.model.initialise_status_signal.emit(False)
 
-    def next_spectra(self):
-        pass
+    def check_electrical_dark(self):
+
+        electrical_dark_checkbox = self.sender()
+        self.model.electrical_dark = electrical_dark_checkbox.checkState()
+
+    def check_integration_time(self):
+
+        integration_time_edit = self.sender()
+        current_text = int(integration_time_edit.text())
+        if (current_text >= self.integration_time_limits[0]) and \
+        (current_text <= self.integration_time_limits[1]):
+            print(f'Setting integration time to {current_text}')
+            self.model.integration_time = current_text
+            # Integration time must be in us
+            self.spectrometer.integration_time_micros(current_text * 1000)
+        else:
+            print(f'Integration time out of \
+            bonds {self.integration_time_limits}')
+            self.model.integration_time = 100
+            self.spectrometer.integration_time_micros(100 * 1000)
+
+    def check_scans_average(self):
+
+        scans_average_edit = self.sender()
+        current_text = scans_average_edit.text()
+        if current_text.isnumeric():
+            print('Updating scans average')
+            current_text = int(current_text)
+            self.model.scans_average = current_text
+
+class UpdaterSpectrometer:
+
+    def __init__(self, view=None):
+
+        self.view = view
+
+    def update_integration_time(self, new_time):
+
+        self.view.integration_time_edit.setText(str(new_time))
+
+    def update_scans_average(self, new_scans):
+
+        self.view.scans_average_edit.setText(str(new_scans))
+
+    def update_spectrometer_counts_plot(self, data):
+
+        time = data[0]
+        counts = data[1]
+
+        self.view.spectrometer_counts_plot.clear()
+        self.view.spectrometer_counts_plot.plot(time, counts, pen='b')
+
+    def update_current_spectrum_plot(self, data):
+
+        wavelength = data[0]
+        spectrum = data[1]
+
+        self.view.current_spectrum_plot.clear()
+        self.view.current_spectrum_plot.plot(wavelength, spectrum, pen='blue')
+
+    def update_average_spectrum_plot(self, data):
+
+        wavelength = data[0]
+        average = data[-1]
+
+        self.view.average_spectrum_plot.clear()
+        self.view.average_spectrum_plot.plot(wavelength, average, pen='blue')
 
 
 if __name__ == '__main__':
 
-    qepro = ControlSpectrometer()
+    pass

@@ -1,54 +1,73 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from spectrometer import UiSpectrometer
-from controller import ControlSpectrometer
+from spectrometer import ViewSpectrometer
+from controller import (
+        DataCheckerSpectrometer,
+        UpdaterSpectrometer,
+        SpectrumAcquiring
+        )
+from model import SpectraData
+
+
+class App(QApplication):
+
+
+    def __init__(self, sys_argv):
+
+        super(App, self).__init__(sys_argv)
+        self.model = SpectraData()
+        self.view = ViewSpectrometer()
+        self.updater = UpdaterSpectrometer(self.view)
+        self.checker = DataCheckerSpectrometer(self.model)
+
+        self.connect_signals_slots()
+        self.view.show()
+
+    def connect_signals_slots(self):
+
+
+        # Model communitacion to updater
+        self.model.averaged_spectrum_signal.connect(
+                self.updater.update_average_spectrum_plot
+                )
+        self.model.spectrum_signal.connect(
+                self.updater.update_current_spectrum_plot
+                )
+        self.model.scans_average_signal.connect(
+                self.updater.update_scans_average
+                )
+        self.model.integration_time_signal.connect(
+                self.updater.update_integration_time
+                )
+        self.model.spectrum_counts_signal.connect(
+                self.updater.update_spectrometer_counts_plot
+                )
+
+        self.model.initialise_status_signal.connect(
+                self.view.enable_gui
+                )
+
+        # Connect view signals to data checker
+        self.view.initialise_button.clicked.connect(
+                self.checker.initialise_spectrometer
+                )
+        self.view.integration_time_edit.editingFinished.connect(
+                self.checker.check_integration_time
+                )
+        self.view.scans_average_edit.editingFinished.connect(
+                self.checker.check_scans_average
+                )
+        self.view.electrical_dark_checkbox.stateChanged.connect(
+                self.checker.check_electrical_dark
+                )
+        self.view.single_spectrum_button.clicked.connect(
+                self.checker.acquirer.start_acquisition
+                )
 
 
 if __name__ == '__main__':
 
-    app = QApplication([])
-    ui_spectrometer = UiSpectrometer()
-
-    qepro = ControlSpectrometer()
-
-    # Connect ui call signals
-    ui_spectrometer.initialise_button.clicked.connect(qepro.initialise)
-    ui_spectrometer.single_spectrum_button.clicked.connect(
-            qepro.get_single_spectrum
-            )
-    ui_spectrometer.read_continuously_signal.connect(qepro.read_continuously)
-    ui_spectrometer.integration_time_signal.connect(
-            lambda _: setattr(qepro, 'integration_time', _)
-            )
-    ui_spectrometer.scans_average_signal.connect(
-            lambda _: setattr(qepro, 'scans_average', _)
-            )
-    ui_spectrometer.electrical_dark_checkbox.stateChanged.connect(
-            lambda _ : setattr(
-                qepro,
-                'electrical_dark',
-                ui_spectrometer.electrical_dark_checkbox.isChecked()
-                )
-            )
-    ui_spectrometer.substract_background_checkbox.stateChanged.connect(
-            lambda _: setattr(
-                qepro,
-                'substract_background',
-                ui_spectrometer.substract_background_checkbox.isChecked()
-                )
-            )
-
-    # Connect controller response signals
-    qepro.spectrum_signal.connect(ui_spectrometer.update_current_spectrum_plot)
-    qepro.averaged_spectrum_signal.connect(
-            ui_spectrometer.update_average_spectrum_plot
-            )
-    qepro.initialise_status_signal.connect(ui_spectrometer.enable_gui)
-    qepro.spectrometer_counts_signal.connect(ui_spectrometer.update_spectrometer_counts_plot)
-
-
-
-    ui_spectrometer.show()
+    app = App(sys.argv)
     sys.exit(app.exec_())
 
 

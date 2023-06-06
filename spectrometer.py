@@ -8,13 +8,14 @@ import pyqtgraph.exporters
 from spectrometerui import Ui_spectrometer_widget
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import (QApplication, QWidget, QFileDialog)
 
 # Cargamos el formulario usando uic
 #window_name, base_class = uic.loadUiType("spectrometer.ui")
 
 
-class UiSpectrometer(QWidget, Ui_spectrometer_widget):
+class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
 
     read_continuously_signal = pyqtSignal(int)
     integration_time_signal = pyqtSignal(int)
@@ -35,52 +36,87 @@ class UiSpectrometer(QWidget, Ui_spectrometer_widget):
                     'background': 'transparent'
                     }
 
-        pg.setConfigOptions(**options)
+        #pg.setConfigOptions(**options)
         self.init_gui(self)
 
     def init_gui(self, mainWindow):
+        """
+        Initializes the gui of the widget.
+
+        It calls on the setupUI from the .ui or .py file containing the GUI.
+        Calls the configure_plots method to setup axis labels on the plots.
+        Sets validators on the Line Edits corresponding to integration time and
+        number of scans to average.
+        Connects button clicked events to their respective functions.
+        """
 
         print('Loading Ui')
         super().setupUi(mainWindow)
         self.setLayout(self.main_layout)
         self.configure_plots()
 
+        # Set validator to only accept positive integers
+        validator = QIntValidator(bottom=0)
+        self.integration_time_edit.setValidator(validator)
+        self.scans_average_edit.setValidator(validator)
+
+        # Connect Button clicked events with slots
         self.read_continuously_button.clicked.connect(
                 lambda x: self.read_continuously_signal.emit(
                     int(self.read_continously_edit.text())
                     )
-                )
-
-        self.integration_time_edit.editingFinished.connect(
-                self.update_integration_time
-                )
-        self.scans_average_edit.editingFinished.connect(
-                self.update_scans_average
                 )
         self.save_button.clicked.connect(self.save)
         self.load_button.clicked.connect(self.load)
         self.previous_button.clicked.connect(self.load_iterate)
         self.filter_checkbox.stateChanged.connect(self.update_filter_range)
 
+        # Get the last file created
         path = os.path.join(os.getcwd(), 'data')
         if (os.path.exists('data')) and (
                 any(os.path.splitext(f)[1] == '.csv' for f in os.listdir(path))
                 ):
             self.current_file = os.path.join(path, os.listdir(path)[-1])
-        print(self.current_file, type(self.current_file))
-        print(path)
 
     def configure_plots(self):
+        """
+        Setups the axis labels for each PlotWidget
+        """
 
         self.current_spectrum_plot.setLabel('left', 'Intensity (counts)')
         self.current_spectrum_plot.setLabel('bottom', 'Wavelength (nm)')
         self.average_spectrum_plot.setLabel('left', 'Intensity (counts)')
         self.average_spectrum_plot.setLabel('bottom', 'Wavelength (nm)')
+        self.spectrometer_counts_plot.setLabel(
+                'left', 'Intensity (counts)'
+                )
+        self.spectrometer_counts_plot.setLabel(
+                'bottom', 'Time (s)'
+                )
 
 
-    def save(self):
+    def save(self, directory='data'):
+        """
+        Saves current data being displayed.
+        Note: It won't save the entire data, only the portion the user is
+        currently viewing.
 
-        if not os.path.exists('data'):
+        The data will be saved in the specified directory, if it does not exists
+        it will create it. If no directory is provided it will be saved in the
+        'data' directory. Only the data in the current spectrum plot (upper
+        left plot in the displayed window) will be saved.
+
+        Parameters
+        ----------
+            folder (str): Directory in which to save the data.
+
+        Returns
+        -------
+            status (bool): Indicates if the save was succesful
+        """
+
+
+        if not os.path.exists(directory):
             print('creating data folder')
             os.mkdir('data')
             os.mkdir(os.path.join('data', 'png'))
@@ -92,11 +128,29 @@ class UiSpectrometer(QWidget, Ui_spectrometer_widget):
         csv_exporter.export(savepath + '.csv')
         savepath = os.path.join('data', 'png', filename)
         exporter.export(savepath + '.png')
+        return True
 
-    def load(self):
+    def load(self, directory='data'):
+        """
+        Generates a File Dialog to select file to load.
+
+        The loading with begin from the 'data' folder unless a different
+        directory is given.
+        Parameters
+        ----------
+            directory : str, optional
+            Directory in which to start the File Dialog
+
+        Returns
+        -------
+            status : bool
+            Indicates if the load was succesful
+
+        """
 
         dialog = QFileDialog(self)
-        dialog.setDirectory(os.getcwd())
+        directory = os.path.join(os.getcwd(), directory)
+        dialog.setDirectory(directory)
         dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
         dialog.setNameFilter('CSV Files (*.csv)')
         dialog.setViewMode(QFileDialog.ViewMode.Detail)
@@ -110,17 +164,45 @@ class UiSpectrometer(QWidget, Ui_spectrometer_widget):
             self.update_current_spectrum_plot((wavelength, spectrum))
 
     def load_iterate(self, position=1):
+        """
+        Loads a previous or next file with respect to the current file.
 
-        position = -1
-        directory = os.path.join(os.getcwd(), 'data')
-        files = [os.path.join(directory, file) for file in os.listdir(directory)]
-        if self.current_file in files:
-            new_file = files.index(self.current_file) + position
-            print(new_file)
-            new_file = files[new_file]
-            print(new_file)
+        It looks based on the value of position. The search is in the current
+        save directory.
+
+        Parameters
+        ----------
+        position : int, optional
+            Indicates to move to next (position = 1) or previous file
+            (position = -1). It can only take values 1 or -1.
+
+        Returns
+        -------
+        status : bool
+            Indicated wether the load was succesful or not.
+
+        """
+
+        if position == 1 or position == -1:
+            directory = os.path.join(os.getcwd(), 'data')
+            files = [os.path.join(directory, file) for file in os.listdir(directory)]
+            if self.current_file in files:
+                new_file = files.index(self.current_file) + position
+                print(new_file)
+                new_file = files[new_file]
+                print(new_file)
+        else:
+            print('Load iteration value invalid (different from +-1)')
+            return False
 
     def update_filter_range(self):
+        """
+        Updates the filter range.
+
+        It sets the range of the currently displayed data in both the current
+        spectrum plot and the average spectrum plot.
+        If the filter box is unchecked it returns the plot to their normal range
+        """
 
         if self.filter_checkbox.isChecked():
             self.current_spectrum_plot.setRange(
@@ -134,9 +216,25 @@ class UiSpectrometer(QWidget, Ui_spectrometer_widget):
                     xRange=[np.min(wavelength), np.max(wavelength)]
                     )
 
-
-
     def enable_gui(self, status):
+        """
+        Enables components from the gui in the event of spectrometer
+        intialisation.
+
+        The components being activated when the spectrometer gets online are:
+            - integration_time_edit : QLineEdit
+            - scans_average_edit : QLineEdit
+            - filter_checkbox : QCheckBox
+            - filter_lower_limit_edit : QLineEdit
+            - filter_upper_limit_edit : QLineEdit
+            - electrical_dark_checkbox : QCheckBox
+            - substract_background_checkbox: QCheckBox
+            - single_spectrum_button : QPushButton
+            - read_continuously_button : QPushButton
+            - store_background_button : QPushButton
+            - load_background_button : QPushButton
+            - save_button : QPushButton
+        """
 
         response = { # Just for display
             True: 'Enabling',
@@ -163,47 +261,6 @@ class UiSpectrometer(QWidget, Ui_spectrometer_widget):
 
         self.initialise_label.setText(f'Status: {status_label[status]}')
 
-    def update_integration_time(self):
-        current_text = self.integration_time_edit.text()
-        if current_text.isnumeric():
-            current_text = int(current_text)
-            self.integration_time_signal.emit(int(current_text))
-        else:
-            print('Integration time must be an integer')
-            self.integration_time_edit.setText('100')
-
-    def update_scans_average(self):
-        current_text = self.scans_average_edit.text()
-        if current_text.isnumeric():
-            current_text = int(current_text)
-            if current_text > 0:
-                self.scans_average_signal.emit(int(current_text))
-        else:
-            print('Scans average must be an integer')
-            self.scans_average_edit.setText('1')
-
-    def update_spectrometer_counts_plot(self, data):
-
-        self.y_counts.append(data)
-        self.x_counts.append(self.y_counts.index(data))
-        self.spectrometer_counts_plot.clear()
-        self.spectrometer_counts_plot.plot(self.x_counts, self.y_counts, pen='b')
-
-    def update_current_spectrum_plot(self, data):
-
-        wavelength = data[0]
-        spectrum = data[1]
-
-        self.current_spectrum_plot.clear()
-        self.current_spectrum_plot.plot(wavelength, spectrum, pen='blue')
-
-    def update_average_spectrum_plot(self, data):
-
-        wavelength = data[0]
-        average = data[-1]
-
-        self.average_spectrum_plot.clear()
-        self.average_spectrum_plot.plot(wavelength, average, pen='blue')
 
 
 
@@ -211,6 +268,6 @@ class UiSpectrometer(QWidget, Ui_spectrometer_widget):
 
 if __name__ == '__main__':
     app = QApplication([])
-    form = UiSpectrometer()
+    form = ViewSpectrometer()
     form.show()
     sys.exit(app.exec_())
