@@ -26,9 +26,6 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
         super().__init__()
 
         self.current_file = None
-        self.x_counts = list()
-        self.y_counts = list()
-        print(self.current_file)
 
         if options is None:
             options = {
@@ -61,11 +58,11 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
         self.scans_average_edit.setValidator(validator)
 
         # Connect Button clicked events with slots
-        self.read_continuously_button.clicked.connect(
-                lambda x: self.read_continuously_signal.emit(
-                    int(self.read_continously_edit.text())
-                    )
-                )
+        #self.read_continuously_button.clicked.connect(
+        #        lambda x: self.read_continuously_signal.emit(
+        #            int(self.read_continously_edit.text())
+        #            )
+        #        )
         self.save_button.clicked.connect(self.save)
         self.load_button.clicked.connect(self.load)
         self.previous_button.clicked.connect(self.load_iterate)
@@ -216,50 +213,6 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
                     xRange=[np.min(wavelength), np.max(wavelength)]
                     )
 
-    def enable_gui(self, status):
-        """
-        Enables components from the gui in the event of spectrometer
-        intialisation.
-
-        The components being activated when the spectrometer gets online are:
-            - integration_time_edit : QLineEdit
-            - scans_average_edit : QLineEdit
-            - filter_checkbox : QCheckBox
-            - filter_lower_limit_edit : QLineEdit
-            - filter_upper_limit_edit : QLineEdit
-            - electrical_dark_checkbox : QCheckBox
-            - substract_background_checkbox: QCheckBox
-            - single_spectrum_button : QPushButton
-            - read_continuously_button : QPushButton
-            - store_background_button : QPushButton
-            - load_background_button : QPushButton
-            - save_button : QPushButton
-        """
-
-        response = { # Just for display
-            True: 'Enabling',
-            False: 'Disabling'
-        }
-        print(f'Spectrometer status: {status}. {response[status]} Gui')
-        self.integration_time_edit.setEnabled(status)
-        self.scans_average_edit.setEnabled(status)
-        self.filter_checkbox.setEnabled(status)
-        self.filter_lower_limit_edit.setEnabled(status)
-        self.filter_upper_limit_edit.setEnabled(status)
-        self.electrical_dark_checkbox.setEnabled(status)
-        self.substract_background_checkbox.setEnabled(status)
-        self.single_spectrum_button.setEnabled(status)
-        self.read_continuously_button.setEnabled(status)
-        self.read_continously_edit.setEnabled(status)
-        self.store_background_button.setEnabled(status)
-        self.load_background_button.setEnabled(status)
-        self.save_button.setEnabled(status)
-        status_label = {
-            True: 'connected',
-            False: 'not connected'
-        }
-
-        self.initialise_label.setText(f'Status: {status_label[status]}')
 
 
 

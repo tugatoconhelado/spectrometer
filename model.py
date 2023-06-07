@@ -13,7 +13,6 @@ class SpectraData(QObject):
     averaged_spectrum_signal = pyqtSignal(tuple)
     spectrum_counts_signal = pyqtSignal(tuple)
     scans_average_signal = pyqtSignal(int)
-    initialise_status_signal = pyqtSignal(bool)
     integration_time_signal = pyqtSignal(int)
 
 

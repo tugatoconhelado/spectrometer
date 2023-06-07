@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1133</width>
-    <height>637</height>
+    <width>1279</width>
+    <height>642</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Spectrometer</string>
@@ -22,9 +28,9 @@
      <height>621</height>
     </rect>
    </property>
-   <layout class="QHBoxLayout" name="main_layout">
+   <layout class="QHBoxLayout" name="main_layout" stretch="1,4">
     <property name="sizeConstraint">
-     <enum>QLayout::SetMaximumSize</enum>
+     <enum>QLayout::SetMinimumSize</enum>
     </property>
     <property name="leftMargin">
      <number>2</number>
@@ -160,13 +166,6 @@
             <bool>false</bool>
            </property>
            <property name="text">
-            <string>CheckBox</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="filter_label">
-           <property name="text">
             <string>Filter from (nm)</string>
            </property>
           </widget>
@@ -244,13 +243,6 @@
             <bool>false</bool>
            </property>
            <property name="text">
-            <string>CheckBox</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="electrical_dark_label">
-           <property name="text">
             <string>Correct for electrical dark</string>
            </property>
           </widget>
@@ -265,49 +257,11 @@
             <bool>false</bool>
            </property>
            <property name="text">
-            <string>CheckBox</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="substrac_background_label">
-           <property name="text">
             <string>Substract background</string>
            </property>
           </widget>
          </item>
         </layout>
-       </item>
-       <item>
-        <widget class="QPushButton" name="single_spectrum_button">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Get Single Spectrum</string>
-         </property>
-         <property name="checkable">
-          <bool>false</bool>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-         <property name="autoRepeat">
-          <bool>false</bool>
-         </property>
-         <property name="autoRepeatDelay">
-          <number>300</number>
-         </property>
-         <property name="autoDefault">
-          <bool>false</bool>
-         </property>
-         <property name="default">
-          <bool>false</bool>
-         </property>
-         <property name="flat">
-          <bool>false</bool>
-         </property>
-        </widget>
        </item>
        <item>
         <spacer name="verticalSpacer">
@@ -323,57 +277,60 @@
         </spacer>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
+        <layout class="QVBoxLayout" name="measure_layout">
          <item>
-          <widget class="QPushButton" name="read_continuously_button">
+          <widget class="QPushButton" name="single_spectrum_button">
            <property name="enabled">
             <bool>false</bool>
            </property>
            <property name="text">
-            <string>Read Continuously</string>
+            <string>Get Single Spectrum</string>
            </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="read_continously_edit">
-           <property name="enabled">
+           <property name="checkable">
             <bool>false</bool>
            </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
+           <property name="checked">
+            <bool>false</bool>
            </property>
-           <property name="maximumSize">
-            <size>
-             <width>100</width>
-             <height>100</height>
-            </size>
+           <property name="autoRepeat">
+            <bool>false</bool>
            </property>
-           <property name="text">
-            <string>10</string>
+           <property name="autoRepeatDelay">
+            <number>300</number>
            </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
+           <property name="default">
+            <bool>false</bool>
+           </property>
+           <property name="flat">
+            <bool>false</bool>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="read_continuously_label">
-           <property name="text">
-            <string>times</string>
-           </property>
-          </widget>
+          <layout class="QHBoxLayout" name="play_stop_layout">
+           <item>
+            <widget class="QPushButton" name="play_button">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Play</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="stop_button">
+             <property name="text">
+              <string>Stop</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
-       </item>
-       <item>
-        <widget class="QPushButton" name="stop_button">
-         <property name="text">
-          <string>Stop</string>
-         </property>
-        </widget>
        </item>
        <item>
         <spacer name="verticalSpacer_2">
@@ -460,12 +417,18 @@
      </widget>
     </item>
     <item>
-     <layout class="QGridLayout" name="plots_layout" rowstretch="1,1" columnstretch="2,1">
+     <layout class="QGridLayout" name="plots_layout" rowstretch="1,1" columnstretch="3,2">
       <property name="sizeConstraint">
        <enum>QLayout::SetDefaultConstraint</enum>
       </property>
-      <item row="1" column="1">
-       <widget class="QGraphicsView" name="graphicsView_4">
+      <item row="0" column="0">
+       <widget class="PlotWidget" name="current_spectrum_plot" native="true"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="PlotWidget" name="average_spectrum_plot" native="true"/>
+      </item>
+      <item row="0" column="1">
+       <widget class="PlotWidget" name="spectrometer_counts_plot" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
           <horstretch>0</horstretch>
@@ -480,20 +443,14 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>200</width>
-          <height>200</height>
+          <width>100000</width>
+          <height>100000</height>
          </size>
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="PlotWidget" name="current_spectrum_plot" native="true"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="PlotWidget" name="average_spectrum_plot" native="true"/>
-      </item>
-      <item row="0" column="1">
-       <widget class="PlotWidget" name="spectrometer_counts_plot" native="true">
+      <item row="1" column="1">
+       <widget class="PlotWidget" name="spectrometer_counts_plot_2" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
           <horstretch>0</horstretch>

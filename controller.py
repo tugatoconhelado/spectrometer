@@ -26,18 +26,17 @@ class SpectrumAcquiring(QObject):
 
     initialise_status_signal = pyqtSignal(bool)
 
-    def __init__(self, model, spectrometer=None):
+    def __init__(self, checker):
 
         super().__init__()
 
-        self.model = model
-        self.spectrometer = spectrometer
-        self.electrical_dark = False
-        self.substract_background = False
-        self.length = 10
+        self.checker = checker
         self.current_index = 0
         self.counts_time = np.array([])
         self.counts = np.array([])
+        self.current_average = np.array([])
+        self.spectra = np.zeros(1) # Stores measurements
+
 
         # Timer to perform the measurements
         self.timer = QTimer()
@@ -46,40 +45,48 @@ class SpectrumAcquiring(QObject):
 
     def start_acquisition(self):
 
-        # Query measurement info
-        self.integration_time = self.model.integration_time
-        self.scans_average = self.model.scans_average
-        self.electrical_dark = self.model.electrical_dark
-
-        self.timer.setInterval(self.integration_time)
+        self.spectra = np.zeros(
+                (self.checker.model.scans_average,
+                 self.checker.length)
+                )
+        self.timer.setInterval(self.checker.model.integration_time)
         print(f'Reading Spectrum')
         print(f'Parameters')
         print(f'----------')
-        print(f'Integration time: {self.integration_time}')
-        print(f'Scans to average: {self.scans_average}')
-        print(f'Electrical dark: {self.electrical_dark}')
+        print(f'Integration time: {self.checker.model.integration_time}')
+        print(f'Scans to average: {self.checker.model.scans_average}')
+        print(f'Electrical dark: {self.checker.model.electrical_dark}')
         self.timer.start()
 
     def get_spectrum(self):
 
-        spectra = np.zeros((self.scans_average, self.length)) # Stores measurements
         i = self.current_index
+
         print(f'Computing spectrum {i}')
-        current_spectrum = self.spectrometer.intensities(
-                self.electrical_dark
+        current_spectrum = self.checker.spectrometer.intensities(
+                self.checker.model.electrical_dark
                 )
-        spectra[i, :] = current_spectrum
-        self.model.spectrum = (self.wavelength, current_spectrum)
-        self.model.averaged_spectrum = (
-                self.wavelength, np.sum(spectra, axis=0) / (i + 1)
+
+        self.spectra[i, :] = current_spectrum
+
+        self.checker.model.spectrum= (self.checker.wavelength, current_spectrum)
+        #self.current_average = np.append(
+        #        self.current_average, spectrum
+        #        )
+
+        self.checker.model.averaged_spectrum = (
+                self.checker.wavelength, np.sum(self.spectra, axis=0) / (i + 1)
                 )
-        self.counts_time = np.append(self.counts_time, i * self.integration_time)
+
+        self.counts_time = np.append(
+                self.counts_time, i * self.checker.model.integration_time
+                )
         self.counts = np.append(self.counts, np.sum(current_spectrum))
-        self.model.spectrum_counts = (
+        self.checker.model.spectrum_counts = (
                 self.counts_time / 1000,
                 self.counts
                 )
-        if self.current_index >= self.scans_average - 1:
+        if self.current_index >= self.checker.model.scans_average - 1:
             # -1 because we count from 0
             self.stop_acquisition()
         else:
@@ -93,28 +100,18 @@ class SpectrumAcquiring(QObject):
         self.counts_time = np.array([])
         self.counts = np.array([])
 
-    def initialise(self):
-
-        print('Loading Spectrometer')
-        try:
-            self.spectrometer = Spectrometer.from_first_available()
-            self.wavelength = self.spectrometer.wavelengths()
-            self.length = len(self.wavelength)
-            self.model.initialise_status_signal.emit(True)
-        except:
-            print('Loading Spectrometer failed')
-            self.model.initialise_status_signal.emit(False)
-
 class DataCheckerSpectrometer(QObject):
 
-
+    initialise_status_signal = pyqtSignal(bool)
     def __init__(self, model):
 
         super().__init__()
 
         self.model = model
-        self.acquirer = SpectrumAcquiring(self.model)
+        self.acquirer = SpectrumAcquiring(self)
         self.integration_time_limits = (10, 1000)
+        self.wavelength = np.array([])
+        self.length = 10
 
     def initialise_spectrometer(self):
 
@@ -123,17 +120,14 @@ class DataCheckerSpectrometer(QObject):
             self.spectrometer = Spectrometer.from_first_available()
             self.wavelength = self.spectrometer.wavelengths()
             self.length = len(self.wavelength)
-            self.model.initialise_status_signal.emit(True)
             limits = self.spectrometer.integration_time_micros_limits
             ms_limits = (limits[0] / 1000, limits[1] / 1000) # Convert to ms
             self.integration_time_limits = ms_limits
-            self.acquirer.spectrometer = self.spectrometer
-            self.acquirer.length = len(self.wavelength)
-            self.acquirer.wavelength = self.wavelength
-            print(self.integration_time_limits)
+            self.initialise_status_signal.emit(True)
+            print('Loading Spectrometer succesful')
         except:
             print('Loading Spectrometer failed')
-            self.model.initialise_status_signal.emit(False)
+            self.initialise_status_signal.emit(False)
 
     def check_electrical_dark(self):
 
@@ -203,6 +197,50 @@ class UpdaterSpectrometer:
         self.view.average_spectrum_plot.clear()
         self.view.average_spectrum_plot.plot(wavelength, average, pen='blue')
 
+    def update_status_gui(self, status):
+        """
+        Enables components from the gui in the event of spectrometer
+        intialisation.
+
+        The components being activated when the spectrometer gets online are:
+            - integration_time_edit : QLineEdit
+            - scans_average_edit : QLineEdit
+            - filter_checkbox : QCheckBox
+            - filter_lower_limit_edit : QLineEdit
+            - filter_upper_limit_edit : QLineEdit
+            - electrical_dark_checkbox : QCheckBox
+            - substract_background_checkbox: QCheckBox
+            - single_spectrum_button : QPushButton
+            - read_continuously_button : QPushButton
+            - store_background_button : QPushButton
+            - load_background_button : QPushButton
+            - save_button : QPushButton
+        """
+
+        response = { # Just for display
+            True: 'Enabling',
+            False: 'Disabling'
+        }
+        print(f'Spectrometer status: {status}. {response[status]} Gui')
+        self.view.integration_time_edit.setEnabled(status)
+        self.view.scans_average_edit.setEnabled(status)
+        self.view.filter_checkbox.setEnabled(status)
+        self.view.filter_lower_limit_edit.setEnabled(status)
+        self.view.filter_upper_limit_edit.setEnabled(status)
+        self.view.electrical_dark_checkbox.setEnabled(status)
+        self.view.substract_background_checkbox.setEnabled(status)
+        self.view.single_spectrum_button.setEnabled(status)
+        self.view.read_continuously_button.setEnabled(status)
+        self.view.read_continously_edit.setEnabled(status)
+        self.view.store_background_button.setEnabled(status)
+        self.view.load_background_button.setEnabled(status)
+        self.view.save_button.setEnabled(status)
+        status_label = {
+            True: 'connected',
+            False: 'not connected'
+        }
+
+        self.view.initialise_label.setText(f'Status: {status_label[status]}')
 
 if __name__ == '__main__':
 

@@ -43,8 +43,8 @@ class App(QApplication):
                 self.updater.update_spectrometer_counts_plot
                 )
 
-        self.model.initialise_status_signal.connect(
-                self.view.enable_gui
+        self.checker.initialise_status_signal.connect(
+                self.updater.update_status_gui
                 )
 
         # Connect view signals to data checker
