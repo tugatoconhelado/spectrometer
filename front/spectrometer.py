@@ -66,7 +66,6 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
         self.save_button.clicked.connect(self.save)
         self.load_button.clicked.connect(self.load)
         self.previous_button.clicked.connect(self.load_iterate)
-        self.filter_checkbox.stateChanged.connect(self.update_filter_range)
 
         # Get the last file created
         path = os.path.join(os.getcwd(), 'data')
@@ -90,7 +89,6 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
         self.spectrometer_counts_plot.setLabel(
                 'bottom', 'Time (s)'
                 )
-
 
     def save(self, directory='data'):
         """
@@ -191,27 +189,6 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
         else:
             print('Load iteration value invalid (different from +-1)')
             return False
-
-    def update_filter_range(self):
-        """
-        Updates the filter range.
-
-        It sets the range of the currently displayed data in both the current
-        spectrum plot and the average spectrum plot.
-        If the filter box is unchecked it returns the plot to their normal range
-        """
-
-        if self.filter_checkbox.isChecked():
-            self.current_spectrum_plot.setRange(
-                    xRange=[
-                        float(self.filter_lower_limit_edit.text()),
-                        float(self.filter_upper_limit_edit.text())
-                        ]
-                    )
-        elif not self.filter_checkbox.isChecked():
-            self.current_spectrum_plot.setRange(
-                    xRange=[np.min(wavelength), np.max(wavelength)]
-                    )
 
 
 

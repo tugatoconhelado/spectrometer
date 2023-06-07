@@ -37,10 +37,10 @@ class SpectraData(QObject):
         self.averaged_spectrum_signal.emit(new_average)
 
     @property
-    def spectrometer_counts(self):
+    def spectrum_counts(self):
         return self.__spectrum_counts
 
-    @spectrometer_counts.setter
+    @spectrum_counts.setter
     def spectrum_counts(self, new_counts):
         self.__spectrum_counts = new_counts
         self.spectrum_counts_signal.emit(self.spectrum_counts)

@@ -1,12 +1,11 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from spectrometer import ViewSpectrometer
-from controller import (
-        DataCheckerSpectrometer,
-        UpdaterSpectrometer,
-        SpectrumAcquiring
-        )
-from model import SpectraData
+from front.spectrometer import ViewSpectrometer
+from controller.controller import (
+        DataCheckerSpectrometer
+)
+from front.updater import UpdaterSpectrometer
+from model.model import SpectraData
 
 
 class App(QApplication):
@@ -63,6 +62,9 @@ class App(QApplication):
         self.view.single_spectrum_button.clicked.connect(
                 self.checker.acquirer.start_acquisition
                 )
+        #self.view.play_button.clicked.connect(
+        #    self.checker.measure
+        #)
 
 
 if __name__ == '__main__':
