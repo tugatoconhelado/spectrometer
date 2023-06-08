@@ -1,85 +1,104 @@
 import os
 import sys
 import numpy as np
-from PyQt5 import QtTest
-from PyQt5.QtCore import (QObject, pyqtSignal)
-from seabreeze.spectrometers import Spectrometer
+from constants import *
+from dataclasses import dataclass, field
 
+@dataclass
+class SpectrumParameterData:
 
-class SpectraData(QObject):
+    _integration_time: int = 100
+    _scans_average: int = 1
+    electrical_dark: bool = False
 
+    def __post_init__(self):
 
-    spectrum_signal = pyqtSignal(tuple)
-    averaged_spectrum_signal = pyqtSignal(tuple)
-    spectrum_counts_signal = pyqtSignal(tuple)
-    scans_average_signal = pyqtSignal(int)
-    integration_time_signal = pyqtSignal(int)
-
-
-    def __init__(self):
-
-        super().__init__()
-
-        self.__spectrum_counts = np.array([])
-        self.__spectrum = np.array([])
-        self.__averaged_spectrum = np.array([])
-        self.__scans_average = 1
-        self.__integration_time = 100
-        self.electrical_dark = False
+        self.scans_average = self._scans_average
+        self.integration_time = self._integration_time
 
     @property
-    def averaged_spectrum(self):
-        return self.__averaged_spectrum
-
-    @averaged_spectrum.setter
-    def averaged_spectrum(self, new_average):
-        self.__averaged_spectrum = new_average
-        self.averaged_spectrum_signal.emit(new_average)
-
-    @property
-    def spectrum_counts(self):
-        return self.__spectrum_counts
-
-    @spectrum_counts.setter
-    def spectrum_counts(self, new_counts):
-        self.__spectrum_counts = new_counts
-        self.spectrum_counts_signal.emit(self.spectrum_counts)
-
-    @property
-    def integration_time(self):
-        return self.__integration_time
+    def integration_time(self) -> int:
+        return self._integration_time
 
     @integration_time.setter
-    def integration_time(self, new_time):
+    def integration_time(self, new_time) -> None:
 
-        self.__integration_time = new_time
-        self.integration_time_signal.emit(self.integration_time)
-
-    @property
-    def spectrum(self):
-        return self.__spectrum
-
-    @spectrum.setter
-    def spectrum(self, spectrum):
-
-        self.__spectrum = spectrum
-        self.spectrum_signal.emit(
-                self.spectrum
-                )
+        if type(new_time) is int:
+            self._integration_time = new_time
+            print(f'Setting integration time to {new_time}')
 
     @property
-    def scans_average(self):
-        return self.__scans_average
+    def scans_average(self) -> int:
+        return self._scans_average
 
     @scans_average.setter
-    def scans_average(self, new_avg):
+    def scans_average(self, new_value) -> None:
 
-        self.__scans_average = new_avg
-        self.scans_average_signal.emit(self.scans_average)
+        if type(new_value) is int:
+            if new_value <= MAX_SCANS_AVERAGE and new_value >= MIN_SCANS_AVERAGE:
+                self._scans_average = new_value
+                print(f'Setting scans to average to {new_value}')
+            else:
+                self._scans_average = 1
+                print('Number of scans to average out of bonds')
+        else:
+            print('Scans to average must be an integer')
+
+@dataclass
+class SpectrumData:
+
+    parameters: SpectrumParameterData
+    wavelength: np.ndarray
+    time: np.ndarray
+    spectrum: np.ndarray
+    averaged_spectrum: np.ndarray
+    spectrum_counts: np.ndarray
 
 
+class DataModel:
+
+
+    def __init__(self, data=[], observers: list = []):
+
+        self.data = data
+        self.observers = observers
+
+    def set_data(self, new_data):
+
+        self.data = new_data
+        self.notify_observers(self.data)
+
+    def register_observer(self, new_observer):
+
+        self.observers.append(new_observer)
+
+    def notify_observers(self, new_data):
+
+        for observer in self.observers:
+            observer.update(new_data)
+
+
+class SpectrumModel(DataModel):
+
+    def __init__(self, data=[], observers: list = []):
+
+        super().__init__(data, observers)
+
+    def set_data(self, new_data):
+
+        if type(new_data) is SpectrumParameterData:
+            self.data.measurement_info = new_data
+        elif type(new_data) is SpectrumData:
+            self.data = new_data
+        self.notify_observers(new_data)
 
 
 if __name__ == '__main__':
 
-    model = SpectraData()
+    from constants import *
+
+    m_data = SpectrumParameterData()
+    print(m_data.scans_average)
+    data = SpectrumData(m_data, [], [], [], [], [])
+    model = SpectrumModel(data=data)
+    model = DataModel(data=data)

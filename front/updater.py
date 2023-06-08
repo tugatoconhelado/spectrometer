@@ -1,42 +1,50 @@
-
+from model.model import SpectrumData, SpectrumModel, SpectrumParameterData
 
 class UpdaterSpectrometer:
 
-    def __init__(self, view=None):
+    def __init__(self, view=None, data=None):
 
         self.view = view
 
-    def update_integration_time(self, new_time):
+    def update(self, new_data):
 
-        self.view.integration_time_edit.setText(str(new_time))
+        print('Attempting to update')
+        if type(new_data) is SpectrumParameterData:
 
-    def update_scans_average(self, new_scans):
+            self.update_parameter_info(new_data)
+        
+        elif type(new_data) is SpectrumData:
 
-        self.view.scans_average_edit.setText(str(new_scans))
+            self.update_spectrum_plot(new_data)
 
-    def update_spectrometer_counts_plot(self, data):
+    def update_parameter_info(self, data):
 
-        time = data[0]
-        counts = data[1]
+        self.view.integration_time_edit.setText(str(data.integration_time))
+        self.view.scans_average_edit.setText(str(data.scans_average))
+        self.view.electrical_dark_checkbox.setCheckState(data.electrical_dark)
 
+    def update_spectrum_plot(self, data):
+
+        time = data.time
+        wavelength = data.wavelength
+        spectrum = data.spectrum
+        average = data.averaged_spectrum
+        counts = data.spectrum_counts
+
+        print(average)
+
+        # Update spectrum_counts
         self.view.spectrometer_counts_plot.clear()
         self.view.spectrometer_counts_plot.plot(time, counts, pen='b')
 
-    def update_current_spectrum_plot(self, data):
-
-        wavelength = data[0]
-        spectrum = data[1]
-
+        # Update current spectrum
         self.view.current_spectrum_plot.clear()
-        self.view.current_spectrum_plot.plot(wavelength, spectrum, pen='blue')
+        self.view.current_spectrum_plot.plot(wavelength, spectrum, pen='yellow')
 
-    def update_average_spectrum_plot(self, data):
-
-        wavelength = data[0]
-        average = data[-1]
-
+        # Update averaged spectrum
         self.view.average_spectrum_plot.clear()
-        self.view.average_spectrum_plot.plot(wavelength, average, pen='blue')
+        self.view.average_spectrum_plot.plot(wavelength, average, pen='yellow')
+
 
     def update_status_gui(self, status):
         """

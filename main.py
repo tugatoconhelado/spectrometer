@@ -1,11 +1,14 @@
 import sys
+from PyQt5.QtCore import QSignalMapper
 from PyQt5.QtWidgets import QApplication
 from front.spectrometer import ViewSpectrometer
 from controller.controller import (
         DataCheckerSpectrometer
 )
 from front.updater import UpdaterSpectrometer
-from model.model import SpectraData
+import numpy as np
+from constants import *
+from model.model import SpectrumData, SpectrumModel, SpectrumParameterData
 
 
 class App(QApplication):
@@ -14,34 +17,27 @@ class App(QApplication):
     def __init__(self, sys_argv):
 
         super(App, self).__init__(sys_argv)
-        self.model = SpectraData()
+        parameters = SpectrumParameterData()
+        data = SpectrumData(
+            parameters=parameters,
+            wavelength=np.array([]),
+            time=np.array([]),
+            spectrum=np.array([]),
+            averaged_spectrum=np.array([]),
+            spectrum_counts=np.array([])
+        )
+        self.model = SpectrumModel(data=data)
         self.view = ViewSpectrometer()
         self.updater = UpdaterSpectrometer(self.view)
-        self.checker = DataCheckerSpectrometer(self.model)
+        self.checker = DataCheckerSpectrometer(self.model, self.view)
+        self.model.register_observer(self.updater)
+        self.model.register_observer(self.checker)
 
         self.connect_signals_slots()
         self.view.show()
 
     def connect_signals_slots(self):
-
-
-        # Model communitacion to updater
-        self.model.averaged_spectrum_signal.connect(
-                self.updater.update_average_spectrum_plot
-                )
-        self.model.spectrum_signal.connect(
-                self.updater.update_current_spectrum_plot
-                )
-        self.model.scans_average_signal.connect(
-                self.updater.update_scans_average
-                )
-        self.model.integration_time_signal.connect(
-                self.updater.update_integration_time
-                )
-        self.model.spectrum_counts_signal.connect(
-                self.updater.update_spectrometer_counts_plot
-                )
-
+        
         self.checker.initialise_status_signal.connect(
                 self.updater.update_status_gui
                 )
@@ -50,15 +46,17 @@ class App(QApplication):
         self.view.initialise_button.clicked.connect(
                 self.checker.initialise_spectrometer
                 )
+
         self.view.integration_time_edit.editingFinished.connect(
-                self.checker.check_integration_time
+                self.checker.modify_parameters
                 )
         self.view.scans_average_edit.editingFinished.connect(
-                self.checker.check_scans_average
+                self.checker.modify_parameters
                 )
         self.view.electrical_dark_checkbox.stateChanged.connect(
-                self.checker.check_electrical_dark
+                self.checker.modify_parameters
                 )
+
         self.view.single_spectrum_button.clicked.connect(
                 self.checker.acquirer.start_acquisition
                 )
