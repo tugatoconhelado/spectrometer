@@ -1,23 +1,18 @@
-from model.model import SpectrumData, SpectrumModel, SpectrumParameterData
+from PyQt5.QtCore import QThread, pyqtSignal
 
-class UpdaterSpectrometer:
+class UpdaterSpectrometer(QThread):
 
-    def __init__(self, view=None, data=None):
 
+    def __init__(self, view=None):
+
+        super().__init__()
         self.view = view
 
-    def update(self, new_data):
+    def run(self):
 
-        print('Attempting to update')
-        if type(new_data) is SpectrumParameterData:
+        self.exec_()
 
-            self.update_parameter_info(new_data)
-        
-        elif type(new_data) is SpectrumData:
-
-            self.update_spectrum_plot(new_data)
-
-    def update_parameter_info(self, data):
+    def update_parameter_display(self, data):
 
         self.view.integration_time_edit.setText(str(data.integration_time))
         self.view.scans_average_edit.setText(str(data.scans_average))
@@ -25,26 +20,9 @@ class UpdaterSpectrometer:
 
     def update_spectrum_plot(self, data):
 
-        time = data.time
-        wavelength = data.wavelength
-        spectrum = data.spectrum
-        average = data.averaged_spectrum
-        counts = data.spectrum_counts
-
-        print(average)
-
-        # Update spectrum_counts
-        self.view.spectrometer_counts_plot.clear()
-        self.view.spectrometer_counts_plot.plot(time, counts, pen='b')
-
-        # Update current spectrum
-        self.view.current_spectrum_plot.clear()
-        self.view.current_spectrum_plot.plot(wavelength, spectrum, pen='yellow')
-
-        # Update averaged spectrum
-        self.view.average_spectrum_plot.clear()
-        self.view.average_spectrum_plot.plot(wavelength, average, pen='yellow')
-
+        self.view.spectrometer_counts_dataline.setData(data.time, data.spectrum_counts, pen='b')
+        self.view.current_spectrum_dataline.setData(data.wavelength, data.spectrum, pen='yellow')
+        self.view.average_spectrum_dataline.setData(data.wavelength, data.averaged_spectrum, pen='yellow')
 
     def update_status_gui(self, status):
         """

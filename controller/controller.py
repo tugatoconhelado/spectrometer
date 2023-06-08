@@ -1,7 +1,6 @@
 import numpy as np
+import time
 from PyQt5.QtCore import (QObject, pyqtSignal, QTimer)
-from seatease.spectrometers import Spectrometer
-from model.model import SpectrumData, SpectrumModel, SpectrumParameterData
 
 
 class SpectrumAcquiring(QObject):
@@ -11,24 +10,39 @@ class SpectrumAcquiring(QObject):
     It reads continously. This means that when the signals is to be averaged,
     it emits signals for every measurement performed in order to average
 
-    Parameters
+    Attributes
     ----------
     spectrometer : Spectrometer
         The Spectrometer object from which to read the data.
-    integration_time: int
-        Integration time of the measurement.
-    scans_average : int
-        Number of scans to be averaged.
+    parameters: SpectrumParameterData
+        SpectrumParameter Data object containing measurements parameters.
+    length : int
+        length of the data to be acquiared.
+    index: int
+        Number of current measurement.
+    time: int
+        Elapsed time. Computed from index times integration time.
+    counts_time: np.ndarray
+        Array containing values of time for count register.
+    wavelength: np.ndarray
+        Wavelength of current measurement.
+
     """
 
-    initialise_status_signal = pyqtSignal(bool)
+    spectrum_data_signal = pyqtSignal(
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray
+    )
 
-    def __init__(self, checker):
+    def __init__(self):
 
         super().__init__()
 
-        self.checker = checker
         self.parameters = []
+        self.length = 1000
         self.index = 0 # current index
         self.time = 0 # current time
         self.counts_time = np.array([])
@@ -43,11 +57,13 @@ class SpectrumAcquiring(QObject):
         self.timer.setInterval(100)
         self.timer.timeout.connect(self.get_spectrum)
 
-    def start_acquisition(self):
+    def start_acquisition(self, spectrometer, parameters):
 
-        #self.parameters = self.checker.model.data.parameters
+        self.parameters = parameters
+        self.spectrometer = spectrometer
+        self.length = len(self.spectrometer.wavelengths())
+        self.average = np.zeros(self.length)
         self.timer.setInterval(self.parameters.integration_time)
-        self.average = np.zeros(self.checker.length)
         print(f'Reading Spectrum')
         print(f'Current Parameters')
         print(f'------------------')
@@ -58,12 +74,13 @@ class SpectrumAcquiring(QObject):
 
     def get_spectrum(self):
 
+        start = time.time()
         print(f'Computing spectrum {self.index}')
 
-        self.spectrum = self.checker.spectrometer.intensities(
+        self.spectrum = self.spectrometer.intensities(
                 self.parameters.electrical_dark
                 )
-        self.wavelength = self.checker.spectrometer.wavelengths()
+        self.wavelength = self.spectrometer.wavelengths()
 
         # Add to current average
         self.average += self.spectrum
@@ -74,8 +91,17 @@ class SpectrumAcquiring(QObject):
                 self.counts_time, self.time
                 )
         self.counts = np.append(self.counts, np.sum(self.spectrum))
+
+        finish = time.time()
+        print(f'Time ellapsed: {(finish - start) * 1000}')
         
-        self.checker.update_data()
+        self.spectrum_data_signal.emit(
+            self.wavelength,
+            self.counts_time,
+            self.spectrum,
+            self.average / (self.index + 1),
+            self.counts
+        )
 
         # Check if measurement is done
         if self.index >= self.parameters.scans_average - 1:
@@ -88,83 +114,15 @@ class SpectrumAcquiring(QObject):
 
         if self.timer.isActive():
             self.timer.stop()
+        print("Stopping acquisition")
         self.index = 0
         self.counts_time = np.array([])
         self.counts = np.array([])
         self.time = 0
 
-class DataCheckerSpectrometer(QObject):
-
-    initialise_status_signal = pyqtSignal(bool)
-
-    def __init__(self, model, view):
-
-        super().__init__()
-
-        self.model = model
-        self.view = view
-        self.acquirer = SpectrumAcquiring(self)
-        self.length = 10
-        self.data = []
-
-    def initialise_spectrometer(self):
-
-        print('Loading Spectrometer')
-        try:
-            self.spectrometer = Spectrometer.from_first_available()
-            self.wavelength = self.spectrometer.wavelengths()
-            self.length = len(self.wavelength)
-            limits = self.spectrometer.integration_time_micros_limits
-            MAX_INTEGRATION_TIME = limits[1] / 1000
-            MIN_INTEGRATION_TIME = limits[0] / 1000
-            self.initialise_status_signal.emit(True)
-            print('Loading Spectrometer succesful')
-        except:
-            print('Loading Spectrometer failed')
-            self.initialise_status_signal.emit(False)
-
-    def modify_parameters(self):
-
-        integration_time = int(self.view.integration_time_edit.text())
-        scans_average = int(self.view.scans_average_edit.text())
-        electrical_dark = self.view.electrical_dark_checkbox.checkState()
-        new_parameter_data = SpectrumParameterData(
-            integration_time, scans_average, electrical_dark
-        )
-        self.model.set_data(new_parameter_data)
-
-    def update_data(self):
-
-        #self.checker.model.averaged_spectrum = (
-        #        self.checker.wavelength, self.current_average / (i + 1)
-        #        )
-        new_spectrum_data = SpectrumData(
-            parameters=self.acquirer.parameters,
-            wavelength = self.acquirer.wavelength,
-            time = self.acquirer.counts_time,
-            spectrum = self.acquirer.spectrum,
-            averaged_spectrum = self.acquirer.average / (self.acquirer.index + 1),
-            spectrum_counts = self.acquirer.counts
-        )
-        self.model.set_data(new_spectrum_data)
-
-    def update(self, new_data):
-
-        if type(new_data) is SpectrumData:
-            self.data = new_data
-            self.acquirer.parameters = self.data.parameters
-            integration_time = new_data.parameters.integration_time
-        elif type(new_data) is SpectrumParameterData:
-            self.acquirer.parameters = new_data
-            integration_time = new_data.integration_time
-
-        print(self.acquirer.parameters.scans_average)
-        # Update acquirer and spectrometer integration time
-        self.spectrometer.integration_time_micros(
-                integration_time * 1000
-                )
-        self.acquirer.timer.setInterval(integration_time)
-
+    def update_parameters(self, parameters):
+        self.parameters = parameters
+        self.timer.setInterval(self.parameters.integration_time)
 
 
 if __name__ == '__main__':

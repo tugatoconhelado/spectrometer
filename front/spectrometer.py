@@ -18,8 +18,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QFileDialog)
 class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
 
     read_continuously_signal = pyqtSignal(int)
-    integration_time_signal = pyqtSignal(int)
-    scans_average_signal = pyqtSignal(int)
+    parameter_data_signal = pyqtSignal(int, int, bool)
 
     def __init__(self, options=None):
 
@@ -89,6 +88,18 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
         self.spectrometer_counts_plot.setLabel(
                 'bottom', 'Time (s)'
                 )
+
+        self.current_spectrum_dataline = self.current_spectrum_plot.plot([], [], pen='yellow')
+        self.average_spectrum_dataline = self.average_spectrum_plot.plot([], [], pen='yellow')
+        self.spectrometer_counts_dataline = self.spectrometer_counts_plot.plot([], [], pen='blue')
+
+    def send_parameter_data(self):
+
+        self.parameter_data_signal.emit(
+            int(self.integration_time_edit.text()),
+            int(self.scans_average_edit.text()),
+            self.electrical_dark_checkbox.checkState()
+        )
 
     def save(self, directory='data'):
         """

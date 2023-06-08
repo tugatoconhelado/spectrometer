@@ -1,58 +1,51 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QPushButton
+from PyQt5.QtCore import QThread, pyqtSignal, QTimer
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton
 
 
-class DataClass:
+class WorkerThread(QThread):
+    signal_received = pyqtSignal(int, int)
+
     def __init__(self):
-        self.data = "Initial Value"
-        self.observers = []
-
-    def set_data(self, new_data):
-        self.data = new_data
-        self.notify_observers()
-
-    def register_observer(self, observer):
-        self.observers.append(observer)
-
-    def notify_observers(self):
-        for observer in self.observers:
-            observer.update(self.data)
-
-
-class GUI(QWidget):
-    def __init__(self, data_class):
         super().__init__()
-        self.data_class = data_class
-        self.init_ui()
 
-    def init_ui(self):
-        self.setWindowTitle("Data GUI")
-        layout = QVBoxLayout()
+    def run(self):
+        # Wait for the signal to be emitted
+        self.signal_received.wait()
 
-        self.label = QLabel("Data: " + self.data_class.data)
-        layout.addWidget(self.label)
+        # Perform the action
+        self.print_numbers()
 
-        button = QPushButton("Change Data")
-        button.clicked.connect(self.change_data)
-        layout.addWidget(button)
+    def print_numbers(self):
+        print("Printing numbers...")
+        num1, num2 = self.signal_received.mapped()
+        print(f"Number 1: {num1}")
+        print(f"Number 2: {num2}")
 
-        self.setLayout(layout)
-        self.show()
 
-    def update(self, new_data):
-        self.label.setText("Data: " + new_data)
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
-    def change_data(self):
-        new_data = "New Value"
-        self.data_class.set_data(new_data)
+        self.worker_thread = WorkerThread()
+        self.worker_thread.signal_received.connect(self.on_signal_received)
+
+        self.button = QPushButton("Send Signal", self)
+        self.button.clicked.connect(self.send_signal)
+
+    def on_signal_received(self, num1, num2):
+        print("Signal received in main window!")
+        print(f"Received numbers: {num1}, {num2}")
+
+    def send_signal(self):
+        num1 = 10
+        num2 = 20
+        self.worker_thread.signal_received.emit(num1, num2)
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    data = DataClass()
-
-    # Create GUI and register data class as an observer
-    gui = GUI(data)
-    data.register_observer(gui)
+    window = MainWindow()
+    window.show()
 
     sys.exit(app.exec())

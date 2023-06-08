@@ -3,6 +3,8 @@ import sys
 import numpy as np
 from constants import *
 from dataclasses import dataclass, field
+from PyQt5.QtCore import QObject, pyqtSignal
+from seabreeze.spectrometers import Spectrometer
 
 @dataclass
 class SpectrumParameterData:
@@ -24,8 +26,14 @@ class SpectrumParameterData:
     def integration_time(self, new_time) -> None:
 
         if type(new_time) is int:
-            self._integration_time = new_time
-            print(f'Setting integration time to {new_time}')
+
+            if new_time <= MAX_INTEGRATION_TIME and new_time >= MIN_INTEGRATION_TIME:
+                self._integration_time = new_time
+                print(f'Setting integration time to {new_time}')
+            else:
+                print(f'Integration time out of bonds')
+        else:
+            print('Integration time must be an integer (in ms)')
 
     @property
     def scans_average(self) -> int:
@@ -54,43 +62,85 @@ class SpectrumData:
     averaged_spectrum: np.ndarray
     spectrum_counts: np.ndarray
 
+class SpectrumModel(QObject):
 
-class DataModel:
+
+    parameters_changed = pyqtSignal(SpectrumParameterData)
+    spectrum_changed = pyqtSignal(SpectrumData)
+    initialise_status_signal = pyqtSignal(bool)
+    get_spectrum_signal = pyqtSignal(Spectrometer, SpectrumParameterData)
 
 
-    def __init__(self, data=[], observers: list = []):
+    def __init__(self, data=0, view=0):
+
+        super().__init__()
 
         self.data = data
-        self.observers = observers
+        self.view = view
+        self.spectrometer = None
 
-    def set_data(self, new_data):
-
-        self.data = new_data
-        self.notify_observers(self.data)
-
-    def register_observer(self, new_observer):
-
-        self.observers.append(new_observer)
-
-    def notify_observers(self, new_data):
-
-        for observer in self.observers:
-            observer.update(new_data)
+    def set_parameters(self, integration_time, scans_average, electrical_dark):
 
 
-class SpectrumModel(DataModel):
+        self.data.parameters = SpectrumParameterData(
+            integration_time,
+            scans_average,
+            electrical_dark
+        )
+        self.spectrometer.integration_time_micros(integration_time * 1000)
+        self.parameters_changed.emit(self.data.parameters)
 
-    def __init__(self, data=[], observers: list = []):
+    def set_spectrum(
+            self, wavelength, time, spectrum, averaged_spectrum, spectrum_counts
+    ):
+        parameters = self.data.parameters
+        self.data = SpectrumData(
+            parameters,
+            wavelength,
+            time,
+            spectrum,
+            averaged_spectrum,
+            spectrum_counts
+        )
+        self.spectrum_changed.emit(self.data)
 
-        super().__init__(data, observers)
+    def initialise_spectrometer(self):
 
-    def set_data(self, new_data):
+        print('Loading Spectrometer')
+        try:
+            self.spectrometer = Spectrometer.from_first_available()
+            limits = self.spectrometer.integration_time_micros_limits
+            print('Loading Spectrometer succesful')
+            self.initialise_status_signal.emit(True)
+        except:
+            print('Loading Spectrometer failed')
+            self.initialise_status_signal.emit(False)
 
-        if type(new_data) is SpectrumParameterData:
-            self.data.measurement_info = new_data
-        elif type(new_data) is SpectrumData:
-            self.data = new_data
-        self.notify_observers(new_data)
+    def update_data(self):
+
+        #self.checker.model.averaged_spectrum = (
+        #        self.checker.wavelength, self.current_average / (i + 1)
+        #        )
+        start = time.time()
+        self.model.set_spectrum(
+            parameters=self.acquirer.parameters,
+            wavelength=self.acquirer.wavelength,
+            time=self.acquirer.counts_time,
+            spectrum=self.acquirer.spectrum,
+            averaged_spectrum=self.acquirer.average / (self.acquirer.index + 1),
+            spectrum_counts=self.acquirer.counts
+        )
+        end = time.time()
+        print(f'Ellapsed time updating {(end - start) * 1000}')
+
+    def request_spectrum(self):
+
+        self.get_spectrum_signal.emit(self.spectrometer, self.data.parameters)
+
+
+
+
+
 
 
 if __name__ == '__main__':
@@ -101,4 +151,3 @@ if __name__ == '__main__':
     print(m_data.scans_average)
     data = SpectrumData(m_data, [], [], [], [], [])
     model = SpectrumModel(data=data)
-    model = DataModel(data=data)
