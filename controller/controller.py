@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from PyQt5.QtCore import (QObject, pyqtSignal, QTimer)
+from PySide6.QtCore import (QObject, Signal, QTimer)
 
 
 class SpectrumAcquiring(QObject):
@@ -29,7 +29,7 @@ class SpectrumAcquiring(QObject):
 
     """
 
-    spectrum_data_signal = pyqtSignal(
+    spectrum_data_signal = Signal(
         np.ndarray,
         np.ndarray,
         np.ndarray,

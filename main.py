@@ -1,6 +1,5 @@
 import sys
-from PyQt5.QtCore import QSignalMapper
-from PyQt5.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 from front.spectrometer import ViewSpectrometer
 from controller.controller import SpectrumAcquiring
 from front.updater import UpdaterSpectrometer

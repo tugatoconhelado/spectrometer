@@ -3,8 +3,8 @@ import sys
 import numpy as np
 from constants import *
 from dataclasses import dataclass, field
-from PyQt5.QtCore import QObject, pyqtSignal
-from seabreeze.spectrometers import Spectrometer
+from PySide6.QtCore import QObject, Signal
+from seatease.spectrometers import Spectrometer
 
 @dataclass
 class SpectrumParameterData:
@@ -65,10 +65,10 @@ class SpectrumData:
 class SpectrumModel(QObject):
 
 
-    parameters_changed = pyqtSignal(SpectrumParameterData)
-    spectrum_changed = pyqtSignal(SpectrumData)
-    initialise_status_signal = pyqtSignal(bool)
-    get_spectrum_signal = pyqtSignal(Spectrometer, SpectrumParameterData)
+    parameters_changed = Signal(SpectrumParameterData)
+    spectrum_changed = Signal(SpectrumData)
+    initialise_status_signal = Signal(bool)
+    get_spectrum_signal = Signal(Spectrometer, SpectrumParameterData)
 
 
     def __init__(self, data=0, view=0):

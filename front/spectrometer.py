@@ -6,10 +6,9 @@ import pyqtgraph as pg
 import pandas as pd
 import pyqtgraph.exporters
 from spectrometerui import Ui_spectrometer_widget
-from PyQt5 import uic
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QIntValidator
-from PyQt5.QtWidgets import (QApplication, QWidget, QFileDialog)
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QIntValidator, QPalette, QColor
+from PySide6.QtWidgets import (QApplication, QWidget, QFileDialog)
 
 # Cargamos el formulario usando uic
 #window_name, base_class = uic.loadUiType("spectrometer.ui")
@@ -17,8 +16,8 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QFileDialog)
 
 class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
 
-    read_continuously_signal = pyqtSignal(int)
-    parameter_data_signal = pyqtSignal(int, int, bool)
+    read_continuously_signal = Signal(int)
+    parameter_data_signal = Signal(int, int, bool)
 
     def __init__(self, options=None):
 
@@ -33,9 +32,9 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
                     }
 
         #pg.setConfigOptions(**options)
-        self.init_gui(self)
+        self.init_gui()
 
-    def init_gui(self, mainWindow):
+    def init_gui(self):
         """
         Initializes the gui of the widget.
 
@@ -47,7 +46,7 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
         """
 
         print('Loading Ui')
-        super().setupUi(mainWindow)
+        self.setupUi(self)
         self.setLayout(self.main_layout)
         self.configure_plots()
 
@@ -208,7 +207,8 @@ class ViewSpectrometer(QWidget, Ui_spectrometer_widget):
 
 
 if __name__ == '__main__':
-    app = QApplication([])
+
+    app = QApplication(sys.argv)
     form = ViewSpectrometer()
     form.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
