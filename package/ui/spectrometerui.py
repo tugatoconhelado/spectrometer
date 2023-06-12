@@ -1,26 +1,19 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'spectrometerKydvBf.ui'
+## Form generated from reading UI file 'spectrometerBxIiBJ.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.5.1
+## Created by: Qt User Interface Compiler version 5.15.9
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QFrame, QGridLayout,
-    QHBoxLayout, QLabel, QLayout, QLineEdit,
-    QPushButton, QSizePolicy, QSpacerItem, QVBoxLayout,
-    QWidget)
+from PySide2.QtCore import *  # type: ignore
+from PySide2.QtGui import *  # type: ignore
+from PySide2.QtWidgets import *  # type: ignore
 
 from pyqtgraph import PlotWidget
+
 
 class Ui_spectrometer_widget(object):
     def setupUi(self, spectrometer_widget):
@@ -314,9 +307,9 @@ class Ui_spectrometer_widget(object):
         self.scans_average_label.setText(QCoreApplication.translate("spectrometer_widget", u"Scans to average", None))
         self.scans_average_edit.setText(QCoreApplication.translate("spectrometer_widget", u"1", None))
         self.filter_checkbox.setText(QCoreApplication.translate("spectrometer_widget", u"Filter from (nm)", None))
-        self.filter_lower_limit_edit.setText(QCoreApplication.translate("spectrometer_widget", u"400", None))
+        self.filter_lower_limit_edit.setText(QCoreApplication.translate("spectrometer_widget", u"300", None))
         self.to_label.setText(QCoreApplication.translate("spectrometer_widget", u"to", None))
-        self.filter_upper_limit_edit.setText(QCoreApplication.translate("spectrometer_widget", u"1100", None))
+        self.filter_upper_limit_edit.setText(QCoreApplication.translate("spectrometer_widget", u"1000", None))
         self.electrical_dark_checkbox.setText(QCoreApplication.translate("spectrometer_widget", u"Correct for electrical dark", None))
         self.substract_background_checkbox.setText(QCoreApplication.translate("spectrometer_widget", u"Substract background", None))
         self.single_spectrum_button.setText(QCoreApplication.translate("spectrometer_widget", u"Get Single Spectrum", None))

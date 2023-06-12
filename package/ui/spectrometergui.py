@@ -3,9 +3,9 @@ import os
 #import filesaver
 from package.ui.spectrometerui import Ui_spectrometer_widget
 #from spectrometerui import Ui_spectrometer_widget
-from PySide6.QtCore import Signal
-from PySide6.QtGui import QIntValidator
-from PySide6.QtWidgets import (QApplication, QWidget)
+from PySide2.QtCore import Signal
+from PySide2.QtGui import QIntValidator
+from PySide2.QtWidgets import (QApplication, QWidget)
 
 
 class SpectrometerGui(QWidget, Ui_spectrometer_widget):

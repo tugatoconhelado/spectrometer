@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from PySide6.QtCore import (QObject, Signal, QTimer)
+from PySide2.QtCore import (QObject, Signal, QTimer)
 from package.model.datamodel import SpectrumData, SpectrumParameterData
 import core.savelogic
 from seatease.spectrometers import Spectrometer

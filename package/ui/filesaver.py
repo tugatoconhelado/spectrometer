@@ -1,7 +1,7 @@
 import os
 import pyqtgraph as pg
 import pandas as pd
-from PySide6.QtWidgets import QFileDialog
+from PySide2.QtWidgets import QFileDialog
 from datetime import datetime
 
 class SpectrumDataSaving:

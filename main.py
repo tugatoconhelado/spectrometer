@@ -1,5 +1,5 @@
 import sys
-from PySide6.QtWidgets import QApplication
+from PySide2.QtWidgets import QApplication
 from package.ui.spectrometergui import SpectrometerGui
 from package.logic.controller import SpectrumExperiment
 from package.model.datamodel import SpectrumParameterData, SpectrumData
@@ -45,7 +45,7 @@ def main():
 
     app = QApplication(sys.argv)
     form = SpectrometerApp()
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
 
 
 if __name__ == '__main__':
