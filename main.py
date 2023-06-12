@@ -1,79 +1,53 @@
 import sys
 from PySide6.QtWidgets import QApplication
-from front.spectrometer import ViewSpectrometer
-from controller.controller import SpectrumAcquiring
-from front.updater import UpdaterSpectrometer
+from package.ui.spectrometergui import SpectrometerGui
+from package.logic.controller import SpectrumExperiment
+from package.model.datamodel import SpectrumParameterData, SpectrumData
 import numpy as np
-from constants import *
-from model.model import SpectrumData, SpectrumModel, SpectrumParameterData
 
 
-class App(QApplication):
+class SpectrometerApp:
 
-
-    def __init__(self, sys_argv):
-
-        super(App, self).__init__(sys_argv)
-        parameters = SpectrumParameterData()
-        data = SpectrumData(
-            parameters=parameters,
-            wavelength=np.array([]),
-            time=np.array([]),
-            spectrum=np.array([]),
-            averaged_spectrum=np.array([]),
-            spectrum_counts=np.array([])
-        )
-        self.model = SpectrumModel(data=data)
-        self.view = ViewSpectrometer()
-        self.updater = UpdaterSpectrometer(self.view)
-        self.acquirer = SpectrumAcquiring()
-
-        self.connect_signals_slots()
-        self.view.show()
-
-    def connect_signals_slots(self):
+    def __init__(self) -> None:
         
-        self.model.initialise_status_signal.connect(
-                self.updater.update_status_gui
-                )
+        self.gui = SpectrometerGui()
+        pdata = SpectrumParameterData(100, 1, False, False)
+        data = SpectrumData(pdata, np.array([]), np.array([]), np.array([]), np.array([]), np.array([]), np.array([]))
+        self.experiment = SpectrumExperiment(data)
+        self.connect_gui_experiment()
+        self.gui.show()
 
-        # Connect view signals to data checker
-        self.view.initialise_button.clicked.connect(
-                self.model.initialise_spectrometer
-                )
+    def connect_gui_experiment(self):
 
-        self.view.integration_time_edit.editingFinished.connect(
-                self.view.send_parameter_data
-                )
-        self.view.scans_average_edit.editingFinished.connect(
-                self.view.send_parameter_data
-                )
-        self.view.electrical_dark_checkbox.stateChanged.connect(
-                self.view.send_parameter_data
-                )
+        self.gui.initialise_button.clicked.connect(
+            self.experiment.initialise_spectrometer
+        )
+        self.gui.parameter_data_signal.connect(self.experiment.set_parameters)
+        self.gui.request_single_spectrum_experiment.connect(
+            self.experiment.start_acquisition
+        )
+        self.gui.stop_button.clicked.connect(self.experiment.stop_acquisition)
+        self.experiment.experiment_status_signal.connect(self.gui.update_status_gui)
 
-        self.view.parameter_data_signal.connect(self.model.set_parameters)
-        self.acquirer.spectrum_data_signal.connect(self.model.set_spectrum)
+        self.experiment.parameters_data_signal.connect(
+            self.gui.update_parameter_display
+        )
 
-        # What to do after parameters have changed
-        self.model.parameters_changed.connect(self.acquirer.update_parameters)
-        self.model.parameters_changed.connect(self.updater.update_parameter_display)
+        self.experiment.spectrum_data_signal.connect(
+            self.gui.update_spectrum_plot
+        )
 
-        # What to do after spectrum have changed
-        self.model.spectrum_changed.connect(self.updater.update_spectrum_plot)
+        self.gui.save_button.clicked.connect(lambda _: self.experiment.save_data())
+        self.gui.load_button.clicked.connect(self.experiment.load_data)
 
-        self.view.single_spectrum_button.clicked.connect(
-                self.model.request_spectrum
-                )
-        self.model.get_spectrum_signal.connect(self.acquirer.start_acquisition)
-        self.view.stop_button.clicked.connect(self.acquirer.stop_acquisition)
 
-        self.updater.start()
+def main():
+
+    app = QApplication(sys.argv)
+    form = SpectrometerApp()
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':
-
-    app = App(sys.argv)
-    sys.exit(app.exec_())
-
+    main()
 
