@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'spectrometerBxIiBJ.ui'
+## Form generated from reading UI file 'spectrometeruAcBZu.ui'
 ##
 ## Created by: Qt User Interface Compiler version 5.15.9
 ##
@@ -207,12 +207,6 @@ class Ui_spectrometer_widget(object):
 
         self.control_layout.addWidget(self.store_background_button)
 
-        self.load_background_button = QPushButton(self.control_frame)
-        self.load_background_button.setObjectName(u"load_background_button")
-        self.load_background_button.setEnabled(False)
-
-        self.control_layout.addWidget(self.load_background_button)
-
         self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         self.control_layout.addItem(self.verticalSpacer_3)
@@ -271,14 +265,14 @@ class Ui_spectrometer_widget(object):
 
         self.plots_layout.addWidget(self.spectrometer_counts_plot, 0, 1, 1, 1)
 
-        self.spectrometer_counts_plot_2 = PlotWidget(self.horizontalLayoutWidget)
-        self.spectrometer_counts_plot_2.setObjectName(u"spectrometer_counts_plot_2")
-        sizePolicy2.setHeightForWidth(self.spectrometer_counts_plot_2.sizePolicy().hasHeightForWidth())
-        self.spectrometer_counts_plot_2.setSizePolicy(sizePolicy2)
-        self.spectrometer_counts_plot_2.setMinimumSize(QSize(100, 100))
-        self.spectrometer_counts_plot_2.setMaximumSize(QSize(100000, 100000))
+        self.background_spectrum_plot = PlotWidget(self.horizontalLayoutWidget)
+        self.background_spectrum_plot.setObjectName(u"background_spectrum_plot")
+        sizePolicy2.setHeightForWidth(self.background_spectrum_plot.sizePolicy().hasHeightForWidth())
+        self.background_spectrum_plot.setSizePolicy(sizePolicy2)
+        self.background_spectrum_plot.setMinimumSize(QSize(100, 100))
+        self.background_spectrum_plot.setMaximumSize(QSize(100000, 100000))
 
-        self.plots_layout.addWidget(self.spectrometer_counts_plot_2, 1, 1, 1, 1)
+        self.plots_layout.addWidget(self.background_spectrum_plot, 1, 1, 1, 1)
 
         self.plots_layout.setRowStretch(0, 1)
         self.plots_layout.setRowStretch(1, 1)
@@ -316,7 +310,6 @@ class Ui_spectrometer_widget(object):
         self.play_button.setText(QCoreApplication.translate("spectrometer_widget", u"Play", None))
         self.stop_button.setText(QCoreApplication.translate("spectrometer_widget", u"Stop", None))
         self.store_background_button.setText(QCoreApplication.translate("spectrometer_widget", u"Store spectrum as background", None))
-        self.load_background_button.setText(QCoreApplication.translate("spectrometer_widget", u"Load spectrum as background", None))
         self.save_button.setText(QCoreApplication.translate("spectrometer_widget", u"Save", None))
         self.load_button.setText(QCoreApplication.translate("spectrometer_widget", u"Load", None))
         self.previous_button.setText(QCoreApplication.translate("spectrometer_widget", u"Previous", None))

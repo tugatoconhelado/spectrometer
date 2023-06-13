@@ -1,10 +1,8 @@
 import numpy as np
-import time
-from PySide2.QtCore import (QObject, Signal, QTimer)
-from package.model.datamodel import SpectrumData, SpectrumParameterData
 import core.savelogic
 from seatease.spectrometers import Spectrometer
-import datetime
+from PySide2.QtCore import (QObject, Signal, QTimer)
+from package.model.datamodel import SpectrumData, SpectrumParameterData
 
 
 class SpectrumExperiment(QObject):
@@ -35,12 +33,11 @@ class SpectrumExperiment(QObject):
     average: np.ndarray
         Averaded spectrum.
     """
-
     spectrum_data_signal = Signal(SpectrumData)
     parameters_data_signal = Signal(SpectrumParameterData)
     experiment_status_signal = Signal(bool)
 
-    save_backend = core.savelogic.SaveLogic()
+    save_backend = core.savelogic.JSONSaver()
 
 
     def __init__(self, data_storage):
@@ -60,18 +57,21 @@ class SpectrumExperiment(QObject):
         self.timer.setInterval(100)
         self.timer.timeout.connect(self.get_spectrum)
 
-    def start_acquisition(self, single_measurement) -> None: 
+    def start_acquisition(self, single_measurement: bool = False) -> None:
         """
         Starts the spectrum acquisition.
 
-        For this, it stores new parameters corresponding to the measurement
-        requested. Sets the timer interval to the integration time, and
-        finally starts the timer, which performs the acquisition.
+        For this, it sets the timer interval to the integration time,
+        then creates the arrays that will contain the counts, the
+        count_time and the spectra to average. Finally, it starts the
+        experiment, contained in get_spectrum, which performs the acquisition.
 
         Parameters
         ----------
-        parameters: SpectrumParameterData
-            Contains the parameters for the measurement.
+        single_measurement: bool
+            Indicates wether to calculate a single measurement until the
+            number of averaged spectra is equal to the number of scans to
+            average, or read until the user stops the experiment.
 
         Returns
         -------
@@ -99,17 +99,10 @@ class SpectrumExperiment(QObject):
 
         Records the spectrum and wavelengths from the spectrometer object.
         Each measured spectrum is averaged and the counts are computed as
-        the sum of all the intensities recorded. Finally, it emits a 
+        the sum of all the intensities recorded. Finally, it emits a
         spectrum_data_signal containing all the info stracted:
-
-        spectrum_data_signal
-        --------------------
-        wavelength : np.ndarray
-        counts_time : np.ndarray
-        spectrum : np.ndarray
-        average : np.ndarray
-        counts: np.ndarray
         """
+
         self.data.spectrum = self.spectrometer.intensities(
                 self.data.parameters.electrical_dark
                 )
@@ -133,7 +126,7 @@ class SpectrumExperiment(QObject):
 
         # Check if measurement is done
         if (
-            self.single_measurement and 
+            self.single_measurement and
             (self.index >= self.data.parameters.scans_average - 1)
         ):
             # -1 because we count from 0
@@ -144,8 +137,10 @@ class SpectrumExperiment(QObject):
     def stop_acquisition(self) -> None:
         """
         Stops the timer if it is still running.
-        
+
         Resets all the index counters and partial sums
+        Emits a signal with the status of the experiment.
+        True for experiment done and False for experiment running
         """
 
         if self.timer.isActive():
@@ -155,7 +150,33 @@ class SpectrumExperiment(QObject):
         self.experiment_status_signal.emit(True)
         print('Measurement stopped')
 
-    def set_parameters(self, integration_time, scans_average, electrical_dark, susbstract_background):
+    def set_parameters(
+            self,
+            integration_time : int = 100,
+            scans_average : int = 10,
+            electrical_dark : bool = False,
+            susbstract_background : bool = False
+            ) -> None:
+        """
+        Sets the measurement parameters to the data containing object
+
+        Parameters
+        ----------
+        integration_time : int
+            Integration time for the measurement
+        scans_average: int
+            Number of scans to average
+        electrical_dark: bool
+            Indicates if the hardware built in electrical dark counts correction
+            should be used in the measurement.
+        substract_background: bool
+            Indicates if the currently stores background should be substracted
+            from the currently measured spectrum.
+
+        Returns
+        -------
+        None
+        """
 
         self.data.parameters.integration_time = integration_time
         self.data.parameters.scans_average = scans_average
@@ -169,10 +190,20 @@ class SpectrumExperiment(QObject):
         self.parameters_data_signal.emit(self.data.parameters)
 
     def set_background(self):
+        """
+        Stores the current spectrum as the background
+        """
 
-        self.data.background = self.data.spectrum
+        self.data.background = self.data.average
+        self.spectrum_data_signal.emit(self.data)
 
-    def initialise_spectrometer(self):
+    def initialise_spectrometer(self) -> None:
+        """
+        Creates an instance of the spectrometer object.
+        Stores the length of the data recorded. To do this, it stracts the
+        wavelengths from the spectrometer, and calculates its length.
+        Emits a signal to enable gui
+        """
 
         print('Loading Spectrometer')
         try:
@@ -186,28 +217,72 @@ class SpectrumExperiment(QObject):
             print('Loading Spectrometer failed')
             self.experiment_status_signal.emit(False)
 
-    def save_data(self, filepath: str = None):
+    def save_data(self, parent_ui, save_as: bool = False) -> str:
+        """
+        Calls the data saving backend to get the directory path for the
+        experiment type ('spectra') and then makes it save the current data
+        in said directory.
 
-        print(filepath)
+        Parameters
+        ----------
+        save_as : bool
+            Indicates the data saving backend whether to just save to the folder
+            or prompt a QFileDialog to select a custom path.
 
-        if filepath is None:
+        Returns
+        -------
+        saved_path : str
+            The path to the saved data.
+
+        WARNING
+        -------
+        The save as functionality is yet to be implemented, thus, it is
+        hardcoded to be set as False.
+        """
+
+        print(save_as)
+        save_as = False
+
+        if save_as is False:
             filepath = self.save_backend.get_path_for_experiment('spectra')
-        
-        saved_path = self.save_backend.save_json(self.data, filepath=filepath, addtimestamp=True)
+
+        saved_path = self.save_backend.save(self.data, filepath=filepath, addtimestamp=True)
         print(f'Data saved to {saved_path}')
-        saved_path = self.save_backend.save_pickle(self.data, filepath=filepath, addtimestamp=True)
-        print(f'Data saved to {saved_path}')
+        #saved_path = self.save_backend.save_pickle(self.data, filepath=filepath, addtimestamp=True)
+        #print(f'Data saved to {saved_path}')
 
-    def load_data(self):
+    def load_data(self, parent_ui, iterate:int = 0) -> str:
+        """
+        Calls the data saving backend to load prompt a File Dialog and load the
+        data.
+        It passes the directory for the experiment type ('spectra') as a
+        variable to start the File Dialog in this folder
 
-        sender = self.sender()
-        filepath = self.save_backend.get_path_for_experiment('spectra')
-        loaded_data = self.save_backend.load(sender.parent(), data=self.data, directory=filepath)
+        Parameters
+        ----------
+        iterate : int = 0, optional
+            Indicates in which direction from the last saved file to iterate.
+            If iterate = 0 the save_backend will prompt a File Dialog
+            It is passed to the saved logic
 
+        Returns
+        -------
+        loaded_data : str
+            Path of the loaded data
+
+        """
+
+        directory = self.save_backend.get_path_for_experiment('spectra')
+        loaded_data = self.save_backend.load(
+                parent=parent_ui, data=self.data,
+                directory=directory, iterate=iterate
+        )
         self.spectrum_data_signal.emit(self.data)
         self.parameters_data_signal.emit(self.data.parameters)
 
-        print('Data loaded succesfully')
+        print(f'Loaded file {loaded_data} succesfully')
+
+        return loaded_data
 
 if __name__ == '__main__':
 

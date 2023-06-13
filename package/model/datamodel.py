@@ -100,9 +100,6 @@ class SpectrumData:
         return self
 
 
-
-
-
 if __name__ == '__main__':
 
     sdata = SpectrumData()

@@ -36,9 +36,24 @@ class SpectrometerApp:
         self.experiment.spectrum_data_signal.connect(
             self.gui.update_spectrum_plot
         )
+        self.gui.store_background_button.clicked.connect(
+            self.experiment.set_background
+        )
+        self.gui.save_button.clicked.connect(
+            lambda : self.experiment.save_data(self.gui)
+        )
+        self.gui.load_button.clicked.connect(
+            lambda : self.experiment.load_data(self.gui, iterate=0)
+        )
 
-        self.gui.save_button.clicked.connect(lambda _: self.experiment.save_data())
-        self.gui.load_button.clicked.connect(self.experiment.load_data)
+        self.gui.previous_button.clicked.connect(
+            lambda : self.experiment.load_data(self.gui, iterate=-1)
+        )
+        self.gui.next_button.clicked.connect(
+            lambda : self.experiment.load_data(self.gui, iterate=1)
+        )
+        self.gui.previous_button.clicked.emit()
+
 
 
 def main():
