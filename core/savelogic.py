@@ -3,7 +3,7 @@ import json
 import pickle
 import os
 import datetime
-from PySide6.QtWidgets import QFileDialog, QApplication, QWidget
+from PySide2.QtWidgets import QFileDialog, QApplication, QWidget
 
 class SaveLogic:
 

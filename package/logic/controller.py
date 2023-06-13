@@ -170,7 +170,8 @@ class SpectrumExperiment(QObject):
 
     def set_background(self):
 
-        self.data.background = self.data.spectrum
+        self.data.background = self.data.average
+        self.spectrum_data_signal.emit(self.data)
 
     def initialise_spectrometer(self):
 

@@ -32,11 +32,12 @@ class SpectrometerApp:
         self.experiment.parameters_data_signal.connect(
             self.gui.update_parameter_display
         )
-
         self.experiment.spectrum_data_signal.connect(
             self.gui.update_spectrum_plot
         )
-
+        self.gui.store_background_button.clicked.connect(
+            self.experiment.set_background
+        )
         self.gui.save_button.clicked.connect(lambda _: self.experiment.save_data())
         self.gui.load_button.clicked.connect(self.experiment.load_data)
 
@@ -50,4 +51,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

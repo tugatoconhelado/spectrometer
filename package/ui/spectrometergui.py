@@ -111,6 +111,7 @@ class SpectrometerGui(QWidget, Ui_spectrometer_widget):
         self.current_spectrum_dataline = self.current_spectrum_plot.plot([], [], pen='yellow')
         self.average_spectrum_dataline = self.average_spectrum_plot.plot([], [], pen='yellow')
         self.spectrometer_counts_dataline = self.spectrometer_counts_plot.plot([], [], pen='blue')
+        self.background_spectrum_dataline = self.background_spectrum_plot.plot([], [], pen='yellow')
 
     def send_parameter_data(self):
 
@@ -132,6 +133,7 @@ class SpectrometerGui(QWidget, Ui_spectrometer_widget):
         self.spectrometer_counts_dataline.setData(data.counts_time, data.counts, pen='b')
         self.current_spectrum_dataline.setData(data.wavelength, data.spectrum, pen='yellow')
         self.average_spectrum_dataline.setData(data.wavelength, data.average, pen='yellow')
+        self.background_spectrum_dataline.setData(data.wavelength, data.background, pen='yellow')
 
     def update_status_gui(self, status):
         """
@@ -168,7 +170,6 @@ class SpectrometerGui(QWidget, Ui_spectrometer_widget):
         self.single_spectrum_button.setEnabled(status)
         self.play_button.setEnabled(True)
         self.store_background_button.setEnabled(status)
-        self.load_background_button.setEnabled(status)
         self.save_button.setEnabled(status)
         self.play_button.setEnabled(status)
         status_label = {
@@ -187,8 +188,9 @@ class SpectrometerGui(QWidget, Ui_spectrometer_widget):
         If the filter box is unchecked it returns the plot to their normal range
         """
 
-        if (int(self.filter_lower_limit_edit.text()) >= \
-            int(self.filter_upper_limit_edit.text())
+        if (
+            int(self.filter_lower_limit_edit.text())
+            >= int(self.filter_upper_limit_edit.text())
         ):
             self.filter_lower_limit_edit.setText('300')
             self.filter_upper_limit_edit.setText('1000')
@@ -197,14 +199,20 @@ class SpectrometerGui(QWidget, Ui_spectrometer_widget):
                     xRange=[
                         float(self.filter_lower_limit_edit.text()),
                         float(self.filter_upper_limit_edit.text())
-                        ]
-                    )
+                    ]
+            )
             self.average_spectrum_plot.setRange(
                     xRange=[
                         float(self.filter_lower_limit_edit.text()),
                         float(self.filter_upper_limit_edit.text())
-                        ]
-                    )
+                    ]
+            )
+            self.background_spectrum_plot.setRange(
+                xRange=[
+                    float(self.filter_lower_limit_edit.text()),
+                    float(self.filter_upper_limit_edit.text())
+                ]
+            )
         elif not self.filter_checkbox.isChecked():
             current_data = self.current_spectrum_dataline.getData()
             if current_data[0] is None:
@@ -215,6 +223,18 @@ class SpectrometerGui(QWidget, Ui_spectrometer_widget):
                         max(current_data[0])
                     ]
                     )
+            self.average_spectrum_plot.setRange(
+                xRange=[
+                    min(current_data[0]),
+                    max(current_data[0])
+                ]
+            )
+            self.background_spectrum_plot.setRange(
+                xRange=[
+                    min(current_data[0]),
+                    max(current_data[0])
+                ]
+            )
 
 
 if __name__ == '__main__':
