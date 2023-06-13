@@ -2,6 +2,7 @@
 
 ################################################################################
 ## Form generated from reading UI file 'spectrometeroxMPdu.ui'
+## Form generated from reading UI file 'spectrometeruAcBZu.ui'
 ##
 ## Created by: Qt User Interface Compiler version 5.15.2
 ##

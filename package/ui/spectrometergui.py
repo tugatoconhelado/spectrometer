@@ -1,6 +1,6 @@
 import sys
 import os
-#import filesaver
+import core.gui
 from package.ui.spectrometerui import Ui_spectrometer_widget
 #from spectrometerui import Ui_spectrometer_widget
 from PySide2.QtCore import Signal
@@ -8,7 +8,7 @@ from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import (QApplication, QWidget)
 
 
-class SpectrometerGui(QWidget, Ui_spectrometer_widget):
+class SpectrometerGui(QWidget, Ui_spectrometer_widget, core.gui.ExperimentGui):
 
     request_single_spectrum_experiment = Signal(bool)
     single_spectrum_experiment_signal = Signal(bool)
@@ -243,4 +243,4 @@ if __name__ == '__main__':
     form = SpectrometerGui()
     form.show()
     form.update_status_gui(True)
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
