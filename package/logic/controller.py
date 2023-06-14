@@ -1,6 +1,6 @@
 import numpy as np
 import core.savelogic
-from seatease.spectrometers import Spectrometer
+from seabreeze.spectrometers import Spectrometer
 from PySide2.QtCore import (QObject, Signal, QTimer)
 from package.model.datamodel import SpectrumData, SpectrumParameterData
 
@@ -37,8 +37,6 @@ class SpectrumExperiment(QObject):
     parameters_data_signal = Signal(SpectrumParameterData)
     experiment_status_signal = Signal(bool)
 
-    save_backend = core.savelogic.JSONSaver()
-
 
     def __init__(self, data_storage):
 
@@ -50,6 +48,7 @@ class SpectrumExperiment(QObject):
         self.data = data_storage
         self.spectra = np.zeros((10, 10))
         self.single_measurement = False
+        self.save_backend = core.savelogic.JSONSaver('data', 'spectra', self.data)
 
 
         # Timer to perform the measurements
@@ -217,41 +216,7 @@ class SpectrumExperiment(QObject):
             print('Loading Spectrometer failed')
             self.experiment_status_signal.emit(False)
 
-    def save_data(self, parent_ui, save_as: bool = False) -> str:
-        """
-        Calls the data saving backend to get the directory path for the
-        experiment type ('spectra') and then makes it save the current data
-        in said directory.
-
-        Parameters
-        ----------
-        save_as : bool
-            Indicates the data saving backend whether to just save to the folder
-            or prompt a QFileDialog to select a custom path.
-
-        Returns
-        -------
-        saved_path : str
-            The path to the saved data.
-
-        WARNING
-        -------
-        The save as functionality is yet to be implemented, thus, it is
-        hardcoded to be set as False.
-        """
-
-        print(save_as)
-        save_as = False
-
-        if save_as is False:
-            filepath = self.save_backend.get_path_for_experiment('spectra')
-
-        saved_path = self.save_backend.save(self.data, filepath=filepath, addtimestamp=True)
-        print(f'Data saved to {saved_path}')
-        #saved_path = self.save_backend.save_pickle(self.data, filepath=filepath, addtimestamp=True)
-        #print(f'Data saved to {saved_path}')
-
-    def load_data(self, parent_ui, iterate:int = 0) -> str:
+    def load_data(self) -> str:
         """
         Calls the data saving backend to load prompt a File Dialog and load the
         data.
@@ -271,18 +236,9 @@ class SpectrumExperiment(QObject):
             Path of the loaded data
 
         """
-
-        directory = self.save_backend.get_path_for_experiment('spectra')
-        loaded_data = self.save_backend.load(
-                parent=parent_ui, data=self.data,
-                directory=directory, iterate=iterate
-        )
         self.spectrum_data_signal.emit(self.data)
         self.parameters_data_signal.emit(self.data.parameters)
 
-        print(f'Loaded file {loaded_data} succesfully')
-
-        return loaded_data
 
 if __name__ == '__main__':
 

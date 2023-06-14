@@ -4,9 +4,9 @@ import numpy as np
 import package.model.constants as config
 import dataclasses
 
+
 @dataclasses.dataclass
 class SpectrumParameterData:
-
 
     _integration_time: int = 100
     _scans_average: int = 1
@@ -27,7 +27,7 @@ class SpectrumParameterData:
 
         if type(new_time) is int:
 
-            if new_time <= config.MAX_INTEGRATION_TIME and new_time >= config.MIN_INTEGRATION_TIME:
+            if config.MAX_INTEGRATION_TIME >= new_time >= config.MIN_INTEGRATION_TIME:
                 self._integration_time = new_time
                 print(f'Setting integration time to {new_time}')
             else:
@@ -44,7 +44,7 @@ class SpectrumParameterData:
     def scans_average(self, new_value) -> None:
 
         if type(new_value) is int:
-            if new_value <= config.MAX_SCANS_AVERAGE and new_value >= config.MIN_SCANS_AVERAGE:
+            if config.MAX_SCANS_AVERAGE >= new_value >= config.MIN_SCANS_AVERAGE:
                 self._scans_average = new_value
                 print(f'Setting scans to average to {new_value}')
             else:
@@ -53,9 +53,9 @@ class SpectrumParameterData:
         else:
             print('Scans to average must be an integer')
 
+
 @dataclasses.dataclass
 class SpectrumData:
-
 
     parameters: SpectrumParameterData = None
     wavelength: np.ndarray = None
@@ -64,7 +64,6 @@ class SpectrumData:
     spectrum: np.ndarray = None
     average: np.ndarray = None
     counts: np.ndarray = None
-
 
     def to_dict(self):
 

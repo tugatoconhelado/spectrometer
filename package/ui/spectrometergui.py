@@ -46,6 +46,7 @@ class SpectrometerGui(QWidget, Ui_spectrometer_widget, core.gui.ExperimentGui):
         self.setupUi(self)
         self.setLayout(self.main_layout)
         self.configure_plots()
+        self.setTheme()
 
         #self.load_button.clicked.connect(lambda _: self.file_manager.load(self))
 
