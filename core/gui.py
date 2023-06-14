@@ -10,7 +10,7 @@ class ExperimentGui(QObject):
 
     def setTheme(self):
 
-        path = os.path.join('themes', 'qtdark.qss')
+        path = os.path.join('themes', 'Darkeum.qss')
         with open(path, 'r') as file:
             stylesheet = file.read()
 

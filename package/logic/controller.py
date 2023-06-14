@@ -1,6 +1,6 @@
 import numpy as np
 import core.savelogic
-from seabreeze.spectrometers import Spectrometer
+from seatease.spectrometers import Spectrometer
 from PySide2.QtCore import (QObject, Signal, QTimer)
 from package.model.datamodel import SpectrumData, SpectrumParameterData
 
