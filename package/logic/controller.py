@@ -1,6 +1,7 @@
 import numpy as np
 import core.savelogic
-from seatease.spectrometers import Spectrometer
+from seabreeze.spectrometers import Spectrometer
+# from seatease.spectrometers import Spectrometer # Emulate the spectrometer
 from PySide2.QtCore import (QObject, Signal, QTimer)
 from package.model.datamodel import SpectrumData, SpectrumParameterData
 
@@ -115,7 +116,7 @@ class SpectrumExperiment(QObject):
         self.data.average = np.sum(self.spectra, axis=0) / (self.data.parameters.scans_average)
 
         # Now compute the counts
-        self.time_sum += self.data.parameters.integration_time / 1000
+        self.time_sum += self.data.parameters.integration_time / 1000 # In seconds
         self.data.counts_time = np.append(
                 self.data.counts_time, self.time_sum
                 )
@@ -123,6 +124,7 @@ class SpectrumExperiment(QObject):
 
         self.spectrum_data_signal.emit(self.data)
 
+        self.save_backend.save(None)
         # Check if measurement is done
         if (
             self.single_measurement and
@@ -184,7 +186,7 @@ class SpectrumExperiment(QObject):
 
         self.timer.setInterval(self.data.parameters.integration_time)
         self.spectrometer.integration_time_micros(
-            self.data.parameters.integration_time * 1000
+            self.data.parameters.integration_time * 1000 # In microseconds
         )
         self.parameters_data_signal.emit(self.data.parameters)
 

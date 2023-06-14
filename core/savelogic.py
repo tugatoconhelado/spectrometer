@@ -60,7 +60,18 @@ class JSONSaver(SaveLogic):
         self.current_file = ''
         self.data = data
 
-    def save(self, parent, add_timestamp: bool = True):
+    def save(self, parent = None, add_timestamp: bool = True):
+        """
+        Saves data to json. For this it calls the to_json method of the dataclass
+        Parameters
+        ----------
+        parent
+        add_timestamp
+
+        Returns
+        -------
+
+        """
 
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         if add_timestamp:

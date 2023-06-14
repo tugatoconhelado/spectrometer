@@ -8,8 +8,3 @@ class ExperimentLogic(abc.ABC):
 
         pass
 
-    @abc.abstractmethod
-    def save_data(self):
-
-        pass
-

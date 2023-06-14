@@ -97,7 +97,6 @@ class SpectrometerGui(QWidget, Ui_spectrometer_widget, core.gui.ExperimentGui):
         """
         Setups the axis labels for each PlotWidget and creates their datalines
         """
-
         self.current_spectrum_plot.setLabel('left', 'Intensity (counts)')
         self.current_spectrum_plot.setLabel('bottom', 'Wavelength (nm)')
         self.average_spectrum_plot.setLabel('left', 'Intensity (counts)')
